@@ -1,0 +1,4022 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>単語帳</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2B4A3E">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="単語帳">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Yomogi&family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+
+  :root{
+    --paper:#F7F5EE;
+    --grid-line:#E3E0D2;
+    --ink-green:#2A5C9E;
+    --ink-green-deep:#1C4374;
+    --film-red:#C94A3C;
+    --film-red-deep:#A63A2E;
+    --navy:#33475B;
+    --navy-deep:#233240;
+    --card-bg:#FFFFFF;
+    --card-border:#DCD6C3;
+    --ring-hole:#EDEAE0;
+    --ring-shadow:#B8B2A0;
+    --text-dark:#2B2822;
+    --text-mute:#8A8571;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Zen Maru Gothic', sans-serif;
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0/28px 28px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0/28px 28px,
+      var(--paper);
+    color:var(--text-dark);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:28px 16px 60px;
+    transition:background .35s ease;
+  }
+  html.focus-bg, body.focus-bg{
+    background:#DCEEF7;
+  }
+  .app{width:100%;max-width:480px;}
+
+  .inapp-warning{
+    background:#FCEFD8;
+    border:1.5px solid #E8C77E;
+    color:#6B4E16;
+    font-size:12.5px;
+    line-height:1.6;
+    padding:10px 14px;
+    border-radius:10px;
+    margin-bottom:14px;
+    text-align:center;
+  }
+  header{text-align:center;margin-bottom:18px;}
+  #header-collapsible.hidden{display:none;}
+  .focus-start-btn{
+    width:100%;
+    margin-bottom:14px;
+    padding:14px;
+    border-radius:12px;
+    border:none;
+    background:var(--ink-green);
+    color:#fff;
+    font-family:inherit;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .focus-start-btn:hover{filter:brightness(1.06);}
+  .focus-exit-btn{
+    display:block;
+    width:100%;
+    margin-bottom:14px;
+    padding:9px;
+    border-radius:10px;
+    border:1.5px solid var(--card-border);
+    background:var(--card-bg);
+    color:var(--text-mute);
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .focus-exit-btn:hover{background:#EFEBDD;}
+  header h1{
+    font-size:22px;
+    margin:0 0 4px;
+    letter-spacing:.04em;
+    font-weight:900;
+  }
+  header p{margin:0;font-size:12.5px;color:var(--text-mute);}
+
+  .autoplay-toggle{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    font-size:11.5px;
+    color:var(--text-mute);
+    margin-top:10px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .autoplay-toggle input{accent-color:var(--ink-green);width:14px;height:14px;cursor:pointer;}
+
+  .tabs{
+    display:flex;
+    gap:6px;
+    margin-top:16px;
+    background:#EEEAD e;
+    background:#EFEBDD;
+    padding:4px;
+    border-radius:12px;
+    border:1px solid var(--card-border);
+  }
+  .tab{
+    flex:1;
+    border:none;
+    background:transparent;
+    padding:9px 4px;
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--text-mute);
+    border-radius:9px;
+    cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  .tab.active{background:var(--card-bg);color:var(--text-dark);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .tab:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible{
+    outline:2px solid var(--navy);outline-offset:2px;
+  }
+
+  .badge{
+    display:inline-flex;align-items:center;
+    background:var(--film-red);
+    color:#fff;font-size:10.5px;font-weight:700;
+    border-radius:999px;
+    padding:1px 6px;
+    margin-left:4px;
+    min-width:16px;
+    justify-content:center;
+  }
+
+  .progress{
+    text-align:center;
+    font-size:12.5px;
+    color:var(--text-mute);
+    margin:18px 0 2px;
+  }
+  .stats-line{
+    text-align:center;
+    font-size:11px;
+    color:var(--text-mute);
+    margin-bottom:14px;
+    cursor:pointer;
+    text-decoration:underline dotted;
+  }
+
+  .card-wrap{perspective:1000px;margin-bottom:20px;}
+  .card{
+    position:relative;
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:38px 24px 28px;
+    min-height:230px;
+    box-shadow:0 10px 24px -12px rgba(43,40,34,.28), 0 2px 6px rgba(43,40,34,.06);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    gap:16px;
+  }
+  .ring{
+    position:absolute;
+    top:14px;
+    width:16px;height:16px;
+    border-radius:50%;
+    background:var(--paper);
+    box-shadow:inset 0 2px 3px var(--ring-shadow), 0 1px 0 rgba(255,255,255,.6);
+    border:1px solid var(--card-border);
+  }
+  .ring.l{left:22px;}
+  .ring.r{right:22px;}
+
+  .pos-tag{
+    font-size:11px;
+    font-weight:700;
+    color:var(--navy);
+    background:#E7ECEF;
+    border-radius:999px;
+    padding:2px 10px;
+    letter-spacing:.03em;
+  }
+
+  .word{
+    font-family:'Yomogi', cursive;
+    font-size:44px;
+    color:var(--ink-green);
+    line-height:1.2;
+    word-break:break-word;
+    text-shadow:0 1px 0 rgba(255,255,255,.4);
+  }
+  /* Speaking-test mode (日本語→英語): the Japanese prompt should read like a
+     question, not the big answer — swap the visual emphasis onto the
+     revealed English word instead. */
+  .card.jaen-mode .word{
+    font-family:'Zen Maru Gothic', sans-serif;
+    font-size:22px;
+    font-weight:700;
+    color:var(--text-dark);
+    text-shadow:none;
+  }
+  .card.jaen-mode .meaning-text{
+    font-family:'Yomogi', cursive;
+    font-size:38px;
+    font-weight:400;
+    color:var(--ink-green);
+    text-shadow:0 1px 0 rgba(255,255,255,.4);
+  }
+
+  .word-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+  }
+  .swamp-badge{
+    font-size:20px;
+    line-height:1;
+    animation:swamp-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes swamp-pulse{
+    0%,100%{opacity:1; transform:scale(1);}
+    50%{opacity:.6; transform:scale(1.15);}
+  }
+  .speak-btn{
+    flex:none;
+    width:38px;height:38px;
+    border-radius:50%;
+    border:1.5px solid var(--card-border);
+    background:var(--card-bg);
+    color:var(--ink-green);
+    font-size:16px;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .12s ease, background .15s ease;
+    box-shadow:0 2px 5px rgba(43,40,34,.1);
+  }
+  .speak-btn:hover{background:#EAF3EC;}
+  .speak-btn:active{transform:scale(.92);}
+  .speak-btn.speaking{
+    color:#fff;
+    background:var(--ink-green);
+    animation:pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(47,110,69,.35);}
+    50%{box-shadow:0 0 0 7px rgba(47,110,69,0);}
+  }
+  .speak-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+  .meaning-zone{
+    position:relative;
+    width:100%;
+    min-height:52px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .meaning-text{
+    font-size:20px;
+    font-weight:700;
+    color:var(--text-dark);
+    padding:6px 10px;
+  }
+  .film{
+    position:absolute;
+    inset:0;
+    border-radius:8px;
+    background:
+      repeating-linear-gradient(135deg, rgba(255,255,255,.08) 0 6px, rgba(255,255,255,0) 6px 12px),
+      linear-gradient(var(--film-red), var(--film-red-deep));
+    display:flex;align-items:center;justify-content:center;
+    color:rgba(255,255,255,.92);
+    font-size:12.5px;
+    font-weight:700;
+    letter-spacing:.05em;
+    transition:opacity .35s ease, transform .35s ease;
+    opacity:1;
+  }
+  .film.revealed{
+    opacity:0;
+    transform:translateY(-10px) scale(1.02);
+    pointer-events:none;
+  }
+
+  .choice-buttons, .next-buttons{
+    display:flex;
+    gap:10px;
+  }
+  .kbd-hint{
+    text-align:center;
+    font-size:10.5px;
+    color:var(--text-mute);
+    margin-top:8px;
+  }
+  .btn{
+    flex:1;
+    border:none;
+    border-radius:12px;
+    padding:14px 10px;
+    font-family:inherit;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+    transition:transform .1s ease, filter .15s ease;
+    color:#fff;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-navy{background:var(--navy);}
+  .btn-navy:hover{filter:brightness(1.08);}
+  .btn-green{background:var(--ink-green);}
+  .btn-green:hover{filter:brightness(1.08);}
+  .btn-outline{
+    background:var(--card-bg);
+    color:var(--text-dark);
+    border:1.5px solid var(--card-border);
+  }
+  .btn-outline:hover{background:#F0EDE2;}
+
+  .delete-forever{
+    display:block;
+    width:100%;
+    margin-top:10px;
+    background:none;
+    border:none;
+    font-family:inherit;
+    font-size:12px;
+    color:var(--text-mute);
+    text-align:center;
+    cursor:pointer;
+    padding:6px;
+    transition:color .15s ease;
+  }
+  .delete-forever:hover{color:var(--film-red-deep);}
+
+  .empty-state{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--text-mute);
+    font-size:14px;
+    line-height:1.7;
+  }
+  .empty-state .big{font-size:30px;display:block;margin-bottom:8px;}
+
+  .hidden{display:none !important;}
+
+  /* Add view */
+  .panel{
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:18px;
+    margin-bottom:16px;
+  }
+  .panel h2{font-size:14px;margin:0 0 12px;color:var(--navy);}
+  .field{margin-bottom:10px;}
+  .field label{display:block;font-size:11.5px;color:var(--text-mute);margin-bottom:4px;font-weight:700;}
+  .field input, .field textarea{
+    width:100%;
+    border:1.5px solid var(--card-border);
+    border-radius:9px;
+    padding:10px 12px;
+    font-family:inherit;
+    font-size:14px;
+    background:var(--paper);
+    color:var(--text-dark);
+  }
+  .field textarea{resize:vertical;min-height:96px;line-height:1.6;}
+  .hint{font-size:11.5px;color:var(--text-mute);margin-top:6px;line-height:1.6;}
+  .row-btn{display:flex;justify-content:flex-end;margin-top:4px;}
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:28px;
+    transform:translateX(-50%);
+    max-width:88%;
+    text-align:center;
+    font-size:13px;
+    color:#fff;
+    font-weight:700;
+    background:rgba(43,40,34,.94);
+    padding:10px 18px;
+    border-radius:999px;
+    box-shadow:0 8px 24px rgba(0,0,0,.28);
+    z-index:2000;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity .2s ease;
+  }
+  .toast:not(:empty){
+    opacity:1;
+  }
+  .deck-bar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    justify-content:center;
+    margin-top:12px;
+  }
+  .deck-pill{
+    border:1.5px solid var(--card-border);
+    background:var(--card-bg);
+    color:var(--text-mute);
+    font-family:inherit;
+    font-size:12px;
+    font-weight:700;
+    padding:6px 12px;
+    border-radius:999px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .deck-pill.active{
+    background:var(--navy);
+    border-color:var(--navy);
+    color:#fff;
+  }
+  .deck-pill:hover:not(.active){background:#EFEBDD;}
+  .deck-pill-add{
+    background:var(--paper);
+    border-style:dashed;
+    color:var(--ink-green-deep);
+  }
+
+  .list-controls{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .word-row-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 6px;
+    border-bottom:1px solid var(--card-border);
+  }
+  .word-row-item:last-child{border-bottom:none;}
+  .wri-status{
+    flex:none;
+    font-size:14px;
+    width:22px;
+    text-align:center;
+  }
+  .wri-text{
+    flex:1;
+    min-width:0;
+  }
+  .wri-en{
+    font-family:'Yomogi', cursive;
+    font-size:16px;
+    color:var(--ink-green);
+    line-height:1.3;
+    word-break:break-word;
+  }
+  .wri-ja{
+    font-size:12px;
+    color:var(--text-mute);
+    line-height:1.4;
+    word-break:break-word;
+  }
+  .wri-meta{
+    flex:none;
+    font-size:10.5px;
+    color:var(--text-mute);
+    text-align:right;
+    white-space:nowrap;
+  }
+  .wri-delete{
+    flex:none;
+    background:none;
+    border:none;
+    font-size:15px;
+    cursor:pointer;
+    padding:4px 6px;
+    color:var(--text-mute);
+    opacity:.6;
+    transition:opacity .15s ease;
+  }
+  .wri-delete:hover{opacity:1;}
+  .list-empty{
+    text-align:center;
+    color:var(--text-mute);
+    font-size:13px;
+    padding:24px 10px;
+  }
+
+  .confirm-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(43,40,34,.55);
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    z-index:1000;
+    padding:20px;
+    overflow-y:auto;
+  }
+  .confirm-box{
+    background:var(--card-bg);
+    border-radius:14px;
+    padding:22px 20px;
+    max-width:360px;
+    width:100%;
+    margin:auto;
+    box-shadow:0 12px 30px rgba(0,0,0,.25);
+  }
+  .confirm-message{
+    font-size:14.5px;
+    line-height:1.7;
+    color:var(--text-dark);
+    margin-bottom:18px;
+    white-space:pre-line;
+  }
+  .confirm-buttons{
+    display:flex;
+    gap:10px;
+  }
+  .ai-create-panel{
+    background:var(--paper);
+    border:1.5px dashed var(--card-border);
+    border-radius:12px;
+    padding:14px;
+  }
+  .ai-create-title{
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--navy);
+    margin-bottom:10px;
+  }
+
+  .reset-link{
+    display:block;
+    text-align:center;
+    font-size:11.5px;
+    color:var(--text-mute);
+    margin-top:22px;
+    text-decoration:underline;
+    cursor:pointer;
+    background:none;border:none;font-family:inherit;
+  }
+
+  .stage-badge{
+    display:inline-block;
+    font-size:11.5px;
+    font-weight:700;
+    padding:3px 10px;
+    border-radius:999px;
+    margin-bottom:6px;
+    background:#E7ECEF;
+    color:var(--navy);
+  }
+  .stage-badge.total{background:#FDECEA;color:var(--film-red-deep);}
+  .stage-badge.makeup{background:#FFF3D6;color:#8A6300;}
+  .stage-badge.maint{background:#E8F1EA;color:var(--ink-green-deep);}
+
+  .advance-btn{
+    width:100%;
+    margin-top:14px;
+    padding:14px;
+    border-radius:12px;
+    border:none;
+    background:var(--navy);
+    color:#fff;
+    font-family:inherit;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .advance-btn:hover{filter:brightness(1.08);}
+
+  .phase-banner{
+    text-align:center;
+    font-size:12px;
+    color:var(--text-mute);
+    background:#EFEBDD;
+    border-radius:10px;
+    padding:8px 10px;
+    margin-bottom:12px;
+    line-height:1.6;
+  }
+  .random-controls{
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    border-radius:12px;
+    padding:14px;
+    margin-bottom:14px;
+  }
+
+  .quote-panel{
+    background:linear-gradient(135deg, #2A5C9E, #1C4374);
+    color:#fff;
+    border:none;
+  }
+  .quote-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:12.5px;
+    font-weight:700;
+    opacity:.85;
+    margin-bottom:10px;
+  }
+  .quote-header .speak-btn{
+    background:rgba(255,255,255,.15);
+    border-color:rgba(255,255,255,.3);
+    color:#fff;
+  }
+  .quote-header .speak-btn.speaking{background:#fff;color:var(--ink-green);}
+  .quote-en{
+    font-family:'Yomogi', cursive;
+    font-size:22px;
+    line-height:1.5;
+    margin-bottom:10px;
+  }
+  .quote-ja{
+    font-size:14.5px;
+    line-height:1.7;
+    opacity:.92;
+    margin-bottom:10px;
+  }
+  .quote-author{
+    font-size:12px;
+    text-align:right;
+    opacity:.75;
+  }
+
+  .growth-bar{
+    display:flex;
+    width:100%;
+    height:22px;
+    border-radius:999px;
+    overflow:hidden;
+    background:#EFEBDD;
+    margin-bottom:10px;
+  }
+  .growth-bar .seg-graduated{background:var(--ink-green);}
+  .growth-bar .seg-progress{background:#E8A33D;}
+  .growth-bar .seg-untouched{background:#D8D2BE;}
+  .growth-legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    font-size:11.5px;
+    color:var(--text-mute);
+    margin-bottom:14px;
+  }
+  .growth-legend span{display:flex;align-items:center;gap:5px;}
+  .legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .growth-numbers{
+    font-size:13.5px;
+    line-height:2;
+    color:var(--text-dark);
+  }
+  .growth-numbers b{color:var(--navy);}
+
+  .heatmap-scroll{
+    overflow-x:auto;
+    padding-bottom:4px;
+  }
+  .heatmap-grid{
+    display:grid;
+    grid-template-rows:repeat(7, 12px);
+    grid-auto-flow:column;
+    grid-auto-columns:12px;
+    gap:3px;
+    width:max-content;
+  }
+  .heatmap-cell{
+    width:12px;
+    height:12px;
+    border-radius:3px;
+    background:#EBE7D9;
+    display:inline-block;
+  }
+  .heatmap-cell[data-level="0"]{background:#EBE7D9;}
+  .heatmap-cell[data-level="1"]{background:#C9E4D0;}
+  .heatmap-cell[data-level="2"]{background:#8FCC9F;}
+  .heatmap-cell[data-level="3"]{background:#4C9A63;}
+  .heatmap-cell[data-level="4"]{background:var(--ink-green-deep);}
+  .heatmap-legend{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    margin-top:8px;
+    font-size:10.5px;
+    color:var(--text-mute);
+  }
+  .heatmap-legend .heatmap-cell{width:10px;height:10px;}
+
+  .history-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:13px;
+    padding:8px 0;
+    border-bottom:1px solid var(--card-border);
+  }
+  .history-row:last-child{border-bottom:none;}
+  .history-date{color:var(--text-mute);}
+  .history-delta{
+    font-size:11.5px;
+    font-weight:700;
+    color:var(--ink-green-deep);
+    background:#E8F1EA;
+    border-radius:999px;
+    padding:2px 8px;
+  }
+  .mode-toggle{
+    display:flex;
+    gap:6px;
+  }
+  .mode-btn, .dir-btn{
+    flex:1;
+    border:1.5px solid var(--card-border);
+    background:var(--paper);
+    color:var(--text-mute);
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:700;
+    padding:9px 6px;
+    border-radius:10px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .mode-btn.active, .dir-btn.active{
+    background:var(--navy);
+    border-color:var(--navy);
+    color:#fff;
+  }
+  .mode-btn:hover:not(.active), .dir-btn:hover:not(.active){background:#EFEBDD;}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="inapp-warning hidden" id="inapp-warning">
+    ⚠️ アプリ内のブラウザで開いています。データの保存がうまくいかないことがあります。右上の「…」などのメニューから「ブラウザで開く」を選ぶのがおすすめです。
+  </div>
+  <header>
+    <h1 id="app-title">📇 単語帳</h1>
+    <div id="header-collapsible">
+      <p>新規100語→総復習→やり直し、を繰り返すサイクル学習</p>
+      <label class="autoplay-toggle">
+        <input type="checkbox" id="chk-autoplay" checked>
+        <span>カード表示時に自動で発音する</span>
+      </label>
+      <div class="deck-bar" id="deck-bar"></div>
+      <div class="tabs">
+        <button class="tab active" data-tab="main">単語帳</button>
+        <button class="tab" data-tab="random">🎲 ランダム復習</button>
+        <button class="tab" data-tab="list">📋 一覧</button>
+        <button class="tab" data-tab="growth">📈 成長記録</button>
+        <button class="tab" data-tab="add">＋追加・設定</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="deck-view">
+    <div class="phase-banner" id="phase-banner"></div>
+    <button class="focus-start-btn hidden" id="btn-focus-start">▶ 単語学習をスタート（集中モード）</button>
+    <button class="focus-exit-btn hidden" id="btn-focus-exit">✅ 完了（終了してメニューに戻る）</button>
+    <div class="mode-toggle hidden" id="main-filter-toggle" style="margin-bottom:12px;">
+      <button type="button" class="mode-btn active" data-mainfilter="all">両方</button>
+      <button type="button" class="mode-btn" data-mainfilter="new">🆕新規のみ</button>
+      <button type="button" class="mode-btn" data-mainfilter="review">🔁復習のみ</button>
+    </div>
+    <div class="random-controls hidden" id="random-controls">
+      <div class="field" style="margin-bottom:10px;">
+        <label>出題する範囲</label>
+        <div class="mode-toggle" id="random-range-toggle">
+          <button type="button" class="mode-btn active" data-mode="all">🎲 全部からランダム</button>
+          <button type="button" class="mode-btn" data-mode="weak">🎯 苦手だけ（まだ完全じゃない語）</button>
+          <button type="button" class="mode-btn" data-mode="swamp">🔥 沼単語だけ</button>
+          <button type="button" class="mode-btn" data-mode="todaynew">🆕 今日の新規単語だけ</button>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:10px;">
+        <label>出題の向き</label>
+        <div class="mode-toggle">
+          <button type="button" class="dir-btn active" data-dir="en-ja">🇬🇧→🇯🇵 通常（英語→日本語）</button>
+          <button type="button" class="dir-btn" data-dir="ja-en">🔥 スピーキングテスト（日本語→英語）</button>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:8px;">
+        <label for="in-random-count">何語ランダムに出す？（消えません・卒業カウントに影響しません）</label>
+        <input id="in-random-count" type="number" min="1" placeholder="例: 20">
+      </div>
+      <label class="autoplay-toggle" style="justify-content:flex-start;margin-bottom:10px;">
+        <input type="checkbox" id="chk-random-autoplay">
+        <span>🔊 自動再生モード（ハンズフリー。英語→日本語で音声読み上げ）</span>
+      </label>
+      <button class="btn btn-navy" id="btn-start-random" style="width:100%;">🎯 集中スタート</button>
+    </div>
+    <div class="progress" id="progress"></div>
+    <div class="stats-line" id="stats-line"></div>
+    <div class="card-wrap">
+      <div class="card" id="card">
+        <div class="ring l"></div><div class="ring r"></div>
+        <span class="stage-badge hidden" id="stage-badge"></span>
+        <div class="word-row">
+          <div class="word" id="word-text">読み込み中…</div>
+          <span class="swamp-badge hidden" id="swamp-badge" title="沼単語（何度も間違えている語）">🔥</span>
+          <button class="speak-btn" id="btn-speak" title="発音を聞く" aria-label="発音を聞く">🔊</button>
+        </div>
+        <div class="meaning-zone">
+          <div class="meaning-text" id="meaning-text"></div>
+          <div class="film" id="film"><span>タップして判定 →</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="choice-buttons" id="choice-buttons">
+      <button class="btn btn-navy" id="btn-dont-know">わからない</button>
+      <button class="btn btn-green" id="btn-know">わかる</button>
+    </div>
+    <div class="kbd-hint" id="kbd-hint">←わからない　わかる→　／　space・Enterで次へ　／　スマホは左右スワイプ</div>
+    <div class="next-buttons hidden" id="next-buttons">
+      <button class="btn btn-outline" id="btn-next">つぎの単語へ →</button>
+    </div>
+    <button class="delete-forever hidden" id="btn-delete-forever">🗑 完全に削除する(もう二度と出さない)</button>
+    <div class="empty-state hidden" id="empty-state"></div>
+    <button class="advance-btn hidden" id="btn-advance">次のステージに進む →</button>
+  </main>
+
+  <section id="add-view" class="hidden">
+    <div class="panel">
+      <h2>⚙️ ペース設定</h2>
+      <div class="field">
+        <label for="in-new-limit">1日に学習する「新しい単語」の数</label>
+        <input id="in-new-limit" type="number" min="1" placeholder="例: 100">
+      </div>
+      <div class="field">
+        <label for="in-maint-batch">復習フェーズ(新規語がなくなった後)の1回あたりの復習語数</label>
+        <input id="in-maint-batch" type="number" min="1" placeholder="例: 200">
+      </div>
+      <div class="field">
+        <label for="in-graduate-streak">「わかる」を何回連続で選んだら卒業（完全に復習対象から除外）にする？</label>
+        <input id="in-graduate-streak" type="number" min="1" placeholder="例: 4">
+      </div>
+      <div class="field">
+        <label for="in-random-default">「🎲 ランダム復習」タブのデフォルト出題数</label>
+        <input id="in-random-default" type="number" min="1" placeholder="例: 20">
+      </div>
+      <div class="field">
+        <label for="in-swamp-threshold">「わからない」を何回選んだら🔥沼単語タグを付ける？</label>
+        <input id="in-swamp-threshold" type="number" min="1" placeholder="例: 5">
+      </div>
+      <div class="hint">
+        新規学習フェーズは「新規◯語＋前回わからなかった語」を5回繰り返したあと、
+        6回目に5日分の総復習、7回目に総復習でわからなかった語だけのやり直し、というサイクルを自動で繰り返します。<br>
+        新規の単語をすべて学習し終えたら、自動的に「復習フェーズ」に切り替わり、
+        「前回わからなかった語＋新しい復習バッチ」を毎回繰り返します。<br>
+        どちらのフェーズでも、単語は「わかる」を設定回数連続で選ぶと自動的に卒業（完全に復習対象から外れます）。「🎲 ランダム復習」タブは卒業した単語も含めて全単語からランダム出題する腕試し用で、答えても卒業状況やサイクルには一切影響しません。
+      </div>
+      <div class="row-btn"><button class="btn btn-navy" id="btn-save-settings" style="flex:none;padding:10px 20px;">設定を保存</button></div>
+    </div>
+
+    <div class="panel">
+      <h2>1語ずつ追加</h2>
+      <div class="field">
+        <label for="in-word">英単語</label>
+        <input id="in-word" type="text" placeholder="例: ubiquitous">
+      </div>
+      <div class="field">
+        <label for="in-meaning">意味（日本語）</label>
+        <input id="in-meaning" type="text" placeholder="例: 至る所にある">
+      </div>
+      <div class="row-btn"><button class="btn btn-green" id="btn-add-one" style="flex:none;padding:10px 20px;">追加する</button></div>
+    </div>
+
+    <div class="panel">
+      <h2>まとめて追加</h2>
+      <div class="field">
+        <textarea id="in-bulk" placeholder="ubiquitous, 至る所にある&#10;procrastinate, 先延ばしにする&#10;meticulous, 几帳面な"></textarea>
+      </div>
+      <div class="hint">1行に「英単語, 意味」の形式で入力（カンマ・タブ・「-」区切りOK）。改行で複数語まとめて追加できます。</div>
+      <div class="row-btn"><button class="btn btn-navy" id="btn-add-bulk" style="flex:none;padding:10px 20px;">まとめて追加する</button></div>
+    </div>
+    <div class="toast" id="toast"></div>
+    <div class="panel" style="margin-top:6px;margin-bottom:14px;">
+      <h2 style="font-size:14px;">🤖 AI機能の設定</h2>
+      <div class="hint" style="margin-bottom:10px;">
+        「AIでセットを作る」機能を使うには、無料のGoogle Gemini APIキーが必要です。
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> でGoogleアカウントがあればクレジットカード登録なしで取得できます（1日1,500回まで無料。このアプリの使い方なら基本的に無料の範囲で足ります）。
+        キーはこの端末のブラウザ内にのみ保存され、外部には送信されません。
+      </div>
+      <div class="field" style="margin-bottom:8px;">
+        <label for="in-api-key">Google Gemini APIキー</label>
+        <input id="in-api-key" type="password" placeholder="AIza...">
+      </div>
+      <button class="btn btn-outline" id="btn-save-api-key" style="width:100%;">キーを保存する</button>
+    </div>
+    <button class="reset-link" id="btn-clear-all">🗑 単語をすべて削除してまっさらから始める（自分で追加していくスタイル向け）</button>
+    <button class="reset-link" id="btn-reset">このセットの進捗だけリセットする（単語は消えません）</button>
+    <button class="reset-link" id="btn-delete-deck">🗑 今のセットを完全に削除する（2つ以上ある場合のみ）</button>
+  </section>
+
+  <section id="growth-view" class="hidden">
+    <div class="panel quote-panel">
+      <div class="quote-header">
+        <span>📖 今日の名言</span>
+        <button class="speak-btn" id="btn-speak-quote" title="読み上げ" aria-label="読み上げ">🔊</button>
+      </div>
+      <div class="quote-en" id="quote-en"></div>
+      <div class="quote-ja" id="quote-ja"></div>
+      <div class="quote-author" id="quote-author"></div>
+    </div>
+
+    <div class="panel">
+      <h2>📊 現在の進捗</h2>
+      <div class="growth-bar" id="growth-bar"></div>
+      <div class="growth-legend" id="growth-legend"></div>
+      <div class="growth-numbers" id="growth-numbers"></div>
+    </div>
+
+    <div class="panel">
+      <h2>🔥 学習ヒートマップ</h2>
+      <div class="hint" style="margin-bottom:10px;">色が濃いほど、その日にたくさん単語に取り組んだことを表します(卒業できたかどうかは関係ありません)。</div>
+      <div class="heatmap-scroll">
+        <div class="heatmap-grid" id="heatmap-grid"></div>
+      </div>
+      <div class="heatmap-legend">
+        <span>少</span>
+        <span class="heatmap-cell" data-level="0"></span>
+        <span class="heatmap-cell" data-level="1"></span>
+        <span class="heatmap-cell" data-level="2"></span>
+        <span class="heatmap-cell" data-level="3"></span>
+        <span class="heatmap-cell" data-level="4"></span>
+        <span>多</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>🗓 学習の記録</h2>
+      <div class="hint" style="margin-bottom:10px;">開いた日ごとの卒業単語数を記録しています。</div>
+      <div id="growth-history"></div>
+    </div>
+  </section>
+
+  <section id="list-view" class="hidden">
+    <div class="panel">
+      <h2>📋 単語一覧</h2>
+      <div class="field" style="margin-bottom:8px;">
+        <input id="in-list-search" type="text" placeholder="単語や意味で検索…">
+      </div>
+      <div class="mode-toggle" id="list-filter-toggle" style="margin-bottom:10px;">
+        <button type="button" class="mode-btn active" data-filter="all">全部</button>
+        <button type="button" class="mode-btn" data-filter="new">🆕未着手</button>
+        <button type="button" class="mode-btn" data-filter="learning">📘学習中</button>
+        <button type="button" class="mode-btn" data-filter="graduated">🏆卒業済み</button>
+        <button type="button" class="mode-btn" data-filter="swamp">🔥沼単語</button>
+      </div>
+      <div class="list-controls">
+        <span id="list-summary" class="hint" style="margin:0;"></span>
+        <button class="btn btn-outline" id="btn-shuffle-list" style="flex:none;padding:8px 14px;font-size:12.5px;">🔀 出題順をシャッフル</button>
+      </div>
+    </div>
+    <div class="panel" style="padding:8px 10px;">
+      <div id="word-list-container"></div>
+    </div>
+  </section>
+
+  <div class="confirm-overlay hidden" id="confirm-overlay">
+    <div class="confirm-box">
+      <div class="confirm-message" id="confirm-message"></div>
+      <div class="confirm-buttons">
+        <button class="btn btn-outline" id="confirm-cancel" style="flex:1;">キャンセル</button>
+        <button class="btn btn-navy" id="confirm-ok" style="flex:1;">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm-overlay hidden" id="deck-create-overlay">
+    <div class="confirm-box">
+      <div class="confirm-message">新しいセットを作る</div>
+      <div class="field" style="margin-bottom:16px;">
+        <label for="in-deck-name">セット名</label>
+        <input id="in-deck-name" type="text" placeholder="例: 生物、TOEFL単語など">
+      </div>
+      <button class="btn btn-outline" id="btn-deck-create-empty" style="width:100%;margin-bottom:14px;">空から作る</button>
+      <div class="ai-create-panel">
+        <div class="ai-create-title">🤖 AIでランダムに単語を作る</div>
+        <div class="field" style="margin-bottom:8px;">
+          <label for="in-ai-needs">どんな単語が欲しい？</label>
+          <input id="in-ai-needs" type="text" placeholder="例: 英検2級レベル、TOEFL80点を目指す人向け、ビジネス英語">
+        </div>
+        <div class="field" style="margin-bottom:10px;">
+          <label for="in-ai-count">何語作る？</label>
+          <input id="in-ai-count" type="number" min="10" max="300" placeholder="例: 100">
+        </div>
+        <button class="btn btn-navy" id="btn-deck-create-ai" style="width:100%;">🤖 AIで作成する</button>
+        <div class="hint" id="ai-progress" style="text-align:center;margin-top:8px;min-height:16px;"></div>
+      </div>
+      <button class="reset-link" id="btn-deck-create-cancel" style="margin-top:6px;">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- PWA storage shim -------------------------------------------------
+  // The original app used Claude's artifact-only window.storage API.
+  // This polyfill gives the same async get/set/delete/list shape, backed by
+  // the browser's own localStorage, so nothing else in this file needs to
+  // change. Data lives only on this device/browser (no cross-device sync).
+  if (!window.storage) {
+    window.storage = {
+      async get(key) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (raw === null) return null;
+          return { key, value: raw };
+        } catch (e) {
+          throw new Error("Storage get failed: " + e.message);
+        }
+      },
+      async set(key, value) {
+        try {
+          localStorage.setItem(key, value);
+          return { key, value };
+        } catch (e) {
+          throw new Error("Storage set failed: " + e.message);
+        }
+      },
+      async delete(key) {
+        localStorage.removeItem(key);
+        return { key, deleted: true };
+      },
+      async list(prefix) {
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (!prefix || (k && k.indexOf(prefix) === 0)) keys.push(k);
+        }
+        return { keys, prefix };
+      }
+    };
+  }
+
+  // --- PWA: Google Gemini API key (for the AI set-creation feature) ----
+  // Free tier, no credit card needed: https://aistudio.google.com/apikey
+  // Stored locally only — never sent anywhere but Google's API.
+  window.__GEMINI_API_KEY__ = localStorage.getItem("gemini-api-key") || "";
+
+  // --- PWA: register the service worker for offline app-shell caching --
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch((e) => {
+        console.warn("Service worker registration failed:", e);
+      });
+    });
+  }
+
+  const SEED_WORDS = [
+    ["achieve","達成する"],
+    ["accomplish","成し遂げる"],
+    ["maintain","維持する"],
+    ["sustain","持続させる"],
+    ["establish","設立する、確立する"],
+    ["determine","決定する"],
+    ["identify","特定する"],
+    ["indicate","示す"],
+    ["reveal","明らかにする"],
+    ["demonstrate","示す、実証する"],
+    ["emphasize","強調する"],
+    ["highlight","強調する"],
+    ["tackle","取り組む"],
+    ["cope","対処する"],
+    ["handle","扱う"],
+    ["manage","対処する、経営する"],
+    ["overcome","克服する"],
+    ["encounter","遭遇する"],
+    ["confront","直面する"],
+    ["avoid","避ける"],
+    ["prevent","防ぐ"],
+    ["reduce","減らす"],
+    ["increase","増やす"],
+    ["develop","発展させる"],
+    ["improve","改善する"],
+    ["enhance","高める"],
+    ["promote","促進する"],
+    ["encourage","励ます"],
+    ["permit","許可する"],
+    ["allow","許可する"],
+    ["enable","可能にする"],
+    ["require","必要とする"],
+    ["force","強制する"],
+    ["tend","傾向がある"],
+    ["appear","現れる、〜のようだ"],
+    ["seem","〜のようだ"],
+    ["occur","起こる"],
+    ["involve","含む、関与させる"],
+    ["include","含む"],
+    ["provide","提供する"],
+    ["offer","提供する"],
+    ["obtain","得る"],
+    ["particular","特定の"],
+    ["various","様々な"],
+    ["considerable","かなりの"],
+    ["adequate","十分な"],
+    ["sufficient","十分な"],
+    ["appropriate","適切な"],
+    ["available","利用可能な"],
+    ["accessible","利用しやすい"],
+    ["affordable","手頃な価格の"],
+    ["reasonable","妥当な"],
+    ["valuable","価値のある"],
+    ["beneficial","有益な"],
+    ["effective","効果的な"],
+    ["convenient","便利な"],
+    ["essential","不可欠な"],
+    ["crucial","極めて重要な"],
+    ["vital","極めて重要な"],
+    ["critical","重大な、批判的な"],
+    ["basic","基本的な"],
+    ["complex","複雑な"],
+    ["complicated","複雑な"],
+    ["straightforward","単純明快な"],
+    ["evident","明らかな"],
+    ["vague","曖昧な"],
+    ["precise","正確な"],
+    ["approximate","おおよその"],
+    ["exact","正確な"],
+    ["rough","おおよその、粗い"],
+    ["previous","以前の"],
+    ["following","次の、以下の"],
+    ["current","現在の"],
+    ["recent","最近の"],
+    ["additional","追加の"],
+    ["regarding","〜に関して"],
+    ["concerning","〜に関して"],
+    ["whereas","一方で"],
+    ["nevertheless","それにもかかわらず"],
+    ["furthermore","さらに"],
+    ["consequently","その結果"],
+    ["particularly","特に"],
+    ["overall","全体的に"],
+    ["primarily","主に"],
+    ["essentially","本質的には"],
+    ["ultimately","最終的に"],
+    ["initially","最初は"],
+    ["eventually","結局は"],
+    ["gradually","徐々に"],
+    ["temporarily","一時的に"],
+    ["permanently","永久に"],
+    ["occasionally","時々"],
+    ["frequently","頻繁に"],
+    ["rarely","めったに〜ない"],
+    ["typically","典型的に"],
+    ["generally","一般的に"],
+    ["specifically","具体的には"],
+    ["relatively","比較的"],
+    ["approximately","およそ"],
+    ["roughly","おおよそ"],
+    ["obviously","明らかに"],
+    ["undoubtedly","疑いなく"],
+    ["awareness","認識"],
+    ["attitude","態度"],
+    ["behavior","行動"],
+    ["tendency","傾向"],
+    ["pattern","パターン"],
+    ["trend","傾向"],
+    ["circumstance","状況"],
+    ["concern","懸念"],
+    ["obstacle","障害"],
+    ["barrier","障壁"],
+    ["hurdle","障害"],
+    ["approach","アプローチ、取り組み方"],
+    ["strategy","戦略"],
+    ["technique","技術"],
+    ["procedure","手順"],
+    ["mechanism","仕組み"],
+    ["ubiquitous","至る所にある、遍在する"],
+    ["meticulous","細部に気を配る、几帳面な"],
+    ["procrastinate","先延ばしにする"],
+    ["arbitrary","恣意的な"],
+    ["ambiguous","曖昧な"],
+    ["compelling","説得力のある"],
+    ["unprecedented","前例のない"],
+    ["detrimental","有害な"],
+    ["inevitable","避けられない"],
+    ["controversial","論争を呼ぶ"],
+    ["sustainable","持続可能な"],
+    ["feasible","実行可能な"],
+    ["plausible","もっともらしい"],
+    ["skeptical","懐疑的な"],
+    ["profound","深遠な、重大な"],
+    ["subtle","微妙な"],
+    ["eloquent","雄弁な"],
+    ["tedious","退屈な"],
+    ["versatile","多才な、万能な"],
+    ["resilient","回復力のある"],
+    ["innate","生まれつきの"],
+    ["explicit","明白な"],
+    ["implicit","暗黙の"],
+    ["coherent","首尾一貫した"],
+    ["redundant","余分な、冗長な"],
+    ["rigorous","厳密な"],
+    ["pragmatic","実用的な"],
+    ["prevalent","普及している"],
+    ["discrepancy","食い違い"],
+    ["consensus","総意、合意"],
+    ["dilemma","ジレンマ"],
+    ["paradox","逆説"],
+    ["jeopardize","危険にさらす"],
+    ["mitigate","緩和する"],
+    ["alleviate","和らげる"],
+    ["exacerbate","悪化させる"],
+    ["undermine","弱体化させる"],
+    ["reinforce","強化する"],
+    ["facilitate","促進する"],
+    ["hinder","妨げる"],
+    ["impede","妨げる"],
+    ["deteriorate","悪化する"],
+    ["accumulate","蓄積する"],
+    ["diminish","減少する"],
+    ["escalate","悪化する、拡大する"],
+    ["fluctuate","変動する"],
+    ["stagnate","停滞する"],
+    ["flourish","繁栄する"],
+    ["thrive","繁栄する"],
+    ["prosper","繁栄する"],
+    ["compensate","補償する"],
+    ["reimburse","払い戻す"],
+    ["subsidize","補助金を出す"],
+    ["allocate","割り当てる"],
+    ["distribute","分配する"],
+    ["deplete","枯渇させる"],
+    ["conserve","保存する、節約する"],
+    ["preserve","保存する"],
+    ["restore","修復する"],
+    ["renovate","改修する"],
+    ["demolish","取り壊す"],
+    ["eradicate","根絶する"],
+    ["exterminate","絶滅させる"],
+    ["extinct","絶滅した"],
+    ["endanger","危険にさらす"],
+    ["vulnerable","脆弱な"],
+    ["susceptible","影響を受けやすい"],
+    ["immune","免疫のある"],
+    ["contagious","伝染性の"],
+    ["chronic","慢性の"],
+    ["acute","急性の、深刻な"],
+    ["symptom","症状"],
+    ["diagnosis","診断"],
+    ["remedy","治療法、解決策"],
+    ["antidote","解毒剤"],
+    ["therapeutic","治療の"],
+    ["sedentary","座りがちな"],
+    ["obesity","肥満"],
+    ["malnutrition","栄養失調"],
+    ["deficiency","欠乏"],
+    ["surplus","余剰"],
+    ["scarcity","不足"],
+    ["abundance","豊富さ"],
+    ["commodity","商品"],
+    ["tariff","関税"],
+    ["subsidy","補助金"],
+    ["inflation","インフレ"],
+    ["recession","不況"],
+    ["deficit","赤字"],
+    ["revenue","収益"],
+    ["expenditure","支出"],
+    ["asset","資産"],
+    ["liability","負債"],
+    ["entrepreneur","起業家"],
+    ["monopoly","独占"],
+    ["bankruptcy","破産"],
+    ["dividend","配当"],
+    ["commerce","商業"],
+    ["legislation","法律、立法"],
+    ["regulation","規制"],
+    ["jurisdiction","管轄"],
+    ["litigation","訴訟"],
+    ["verdict","評決"],
+    ["testimony","証言"],
+    ["plaintiff","原告"],
+    ["defendant","被告"],
+    ["custody","監護、拘留"],
+    ["surveillance","監視"],
+    ["interrogate","尋問する"],
+    ["incarcerate","投獄する"],
+    ["felony","重罪"],
+    ["misdemeanor","軽犯罪"],
+    ["sanction","制裁"],
+    ["embargo","禁輸措置"],
+    ["diplomacy","外交"],
+    ["treaty","条約"],
+    ["sovereignty","主権"],
+    ["bureaucracy","官僚制"],
+    ["constituency","選挙区"],
+    ["referendum","国民投票"],
+    ["electorate","有権者"],
+    ["coalition","連立"],
+    ["autonomy","自治"],
+    ["hierarchy","階層制"],
+    ["ideology","イデオロギー"],
+    ["propaganda","宣伝"],
+    ["censorship","検閲"],
+    ["discrimination","差別"],
+    ["prejudice","偏見"],
+    ["stereotype","固定観念"],
+    ["segregation","隔離"],
+    ["integration","統合"],
+    ["assimilation","同化"],
+    ["immigrant","移民"],
+    ["refugee","難民"],
+    ["asylum","亡命、保護"],
+    ["deportation","強制送還"],
+    ["demographic","人口統計の"],
+    ["census","国勢調査"],
+    ["urbanization","都市化"],
+    ["infrastructure","インフラ"],
+    ["ecosystem","生態系"],
+    ["biodiversity","生物多様性"],
+    ["habitat","生息地"],
+    ["deforestation","森林伐採"],
+    ["pollutant","汚染物質"],
+    ["emission","排出"],
+    ["renewable","再生可能な"],
+    ["drought","干ばつ"],
+    ["famine","飢饉"],
+    ["epidemic","疫病"],
+    ["pandemic","世界的流行病"],
+    ["outbreak","(病気の)発生"],
+    ["vaccine","ワクチン"],
+    ["immunity","免疫"],
+    ["genome","ゲノム"],
+    ["mutation","突然変異"],
+    ["hereditary","遺伝性の"],
+    ["cognitive","認知の"],
+    ["perception","知覚"],
+    ["intuition","直感"],
+    ["rationale","論拠、根拠"],
+    ["hypothesis","仮説"],
+    ["empirical","経験的な"],
+    ["theoretical","理論的な"],
+    ["methodology","方法論"],
+    ["curriculum","カリキュラム"],
+    ["pedagogy","教育法"],
+    ["literacy","識字力"],
+    ["proficiency","熟達、堪能さ"],
+    ["aptitude","適性"],
+    ["incentive","動機付け、奨励(金)"],
+    ["perseverance","忍耐、粘り強さ"],
+    ["diligence","勤勉"],
+    ["integrity","誠実さ、高潔"],
+    ["hypocrisy","偽善"],
+    ["arrogance","傲慢"],
+    ["humility","謙虚さ"],
+    ["empathy","共感"],
+    ["compassion","思いやり"],
+    ["altruism","利他主義"],
+    ["philanthropy","慈善活動"],
+    ["donation","寄付"],
+    ["advocate","主張する、擁護者"],
+    ["lobby","陳情する、ロビー活動をする"],
+    ["petition","請願(する)"],
+    ["boycott","ボイコットする"],
+    ["uprising","蜂起"],
+    ["insurgency","反乱、暴動"],
+    ["underestimate","過小評価する"],
+    ["overestimate","過大評価する"],
+    ["overwhelm","圧倒する"],
+    ["overshadow","影を薄くする、上回る"],
+    ["outweigh","上回る、勝る"],
+    ["surpass","上回る"],
+    ["exceed","超える"],
+    ["constitute","構成する"],
+    ["comprise","構成する"],
+    ["encompass","含む、包含する"],
+    ["incorporate","組み込む"],
+    ["integrate","統合する"],
+    ["differentiate","区別する"],
+    ["distinguish","見分ける"],
+    ["discern","識別する"],
+    ["perceive","知覚する"],
+    ["comprehend","理解する"],
+    ["interpret","解釈する"],
+    ["elaborate","詳しく述べる"],
+    ["clarify","明確にする"],
+    ["justify","正当化する"],
+    ["rationalize","合理化する"],
+    ["legitimate","合法の、正当な"],
+    ["authentic","本物の"],
+    ["genuine","本物の、誠実な"],
+    ["credible","信頼できる"],
+    ["reliable","信頼できる"],
+    ["dubious","疑わしい"],
+    ["questionable","疑わしい"],
+    ["notorious","悪名高い"],
+    ["renowned","有名な"],
+    ["prestigious","名声のある"],
+    ["eminent","著名な"],
+    ["distinguished","卓越した"],
+    ["mediocre","平凡な"],
+    ["inferior","劣った"],
+    ["superior","優れた"],
+    ["optimal","最適な"],
+    ["viable","実行可能な"],
+    ["redeem","埋め合わせる、償う"],
+    ["rehabilitate","更生させる"],
+    ["reconcile","和解させる"],
+    ["resolve","解決する"],
+    ["negotiate","交渉する"],
+    ["mediate","仲裁する"],
+    ["arbitrate","仲裁する"],
+    ["collaborate","協力する"],
+    ["cooperate","協力する"],
+    ["coordinate","調整する"],
+    ["delegate","委任する"],
+    ["deploy","配備する"],
+    ["mobilize","動員する"],
+    ["galvanize","駆り立てる"],
+    ["instigate","扇動する"],
+    ["provoke","挑発する"],
+    ["incite","扇動する"],
+    ["deter","抑止する"],
+    ["discourage","やる気を失わせる"],
+    ["dissuade","思いとどまらせる"],
+    ["persuade","説得する"],
+    ["convince","納得させる"],
+    ["manipulate","操作する"],
+    ["exploit","利用する、搾取する"],
+    ["capitalize","利用する、資本化する"],
+    ["leverage","活用する、てこ入れする"],
+    ["optimize","最適化する"],
+    ["streamline","合理化する"],
+    ["standardize","標準化する"],
+    ["customize","カスタマイズする"],
+    ["modify","修正する"],
+    ["adapt","適応する"],
+    ["adjust","調整する"],
+    ["accommodate","対応する、収容する"],
+    ["comply","従う"],
+    ["conform","従う、順応する"],
+    ["abide","従う"],
+    ["violate","違反する"],
+    ["infringe","侵害する"],
+    ["breach","違反する"],
+    ["contravene","違反する"],
+    ["transgress","違反する"],
+    ["trespass","不法侵入する"],
+    ["tolerate","許容する"],
+    ["condone","容認する"],
+    ["condemn","非難する"],
+    ["denounce","糾弾する"],
+    ["criticize","批判する"],
+    ["reprimand","叱責する"],
+    ["rebuke","叱責する"],
+    ["commend","称賛する"],
+    ["applaud","称賛する"],
+    ["acclaim","称賛する"],
+    ["laud","称賛する"],
+    ["glorify","賛美する"],
+    ["idolize","崇拝する"],
+    ["venerate","崇敬する"],
+    ["worship","崇拝する"],
+    ["scrutinize","精査する"],
+    ["inspect","検査する"],
+    ["audit","監査する"],
+    ["evaluate","評価する"],
+    ["assess","評価する"],
+    ["appraise","評価する"],
+    ["estimate","見積もる"],
+    ["calculate","計算する"],
+    ["quantify","数値化する"],
+    ["gauge","判断する、測定する"],
+    ["monitor","監視する"],
+    ["supervise","監督する"],
+    ["oversee","監督する"],
+    ["administer","管理する"],
+    ["govern","統治する"],
+    ["dominate","支配する"],
+    ["prevail","普及する、勝つ"],
+    ["predominate","優勢である"],
+    ["subdue","抑える、征服する"],
+    ["suppress","抑圧する"],
+    ["repress","抑圧する"],
+    ["oppress","圧迫する"],
+    ["persecute","迫害する"],
+    ["discriminate","差別する"],
+    ["marginalize","疎外する"],
+    ["alienate","疎外する"],
+    ["isolate","孤立させる"],
+    ["exclude","除外する"],
+    ["exempt","免除する"],
+    ["waive","放棄する"],
+    ["relinquish","放棄する"],
+    ["forfeit","没収される、失う"],
+    ["abandon","放棄する"],
+    ["renounce","放棄する"],
+    ["resign","辞任する"],
+    ["withdraw","撤退する"],
+    ["retreat","撤退する"],
+    ["retract","撤回する"],
+    ["revoke","取り消す"],
+    ["rescind","撤回する"],
+    ["nullify","無効にする"],
+    ["invalidate","無効にする"],
+    ["validate","有効にする、検証する"],
+    ["verify","検証する"],
+    ["authenticate","本物であると証明する"],
+    ["certify","証明する"],
+    ["accredit","認定する"],
+    ["authorize","許可する"],
+    ["prohibit","禁止する"],
+    ["forbid","禁止する"],
+    ["ban","禁止する"],
+    ["restrict","制限する"],
+    ["confine","制限する、監禁する"],
+    ["constrain","制約する"],
+    ["curb","抑制する"],
+    ["curtail","削減する"],
+    ["truncate","切り詰める"],
+    ["abbreviate","短縮する"],
+    ["condense","凝縮する"],
+    ["compress","圧縮する"],
+    ["expand","拡大する"],
+    ["extend","延長する"],
+    ["prolong","延長する"],
+    ["postpone","延期する"],
+    ["defer","延期する"],
+    ["suspend","一時停止する"],
+    ["terminate","終了させる"],
+    ["abolish","廃止する"],
+    ["eliminate","排除する"],
+    ["dismiss","却下する、解雇する"],
+    ["discard","捨てる"],
+    ["dispose","処分する"],
+    ["dispatch","発送する、派遣する"],
+    ["transmit","伝達する"],
+    ["convey","伝える"],
+    ["articulate","はっきり述べる"],
+    ["verbalize","言葉にする"],
+    ["paraphrase","言い換える"],
+    ["summarize","要約する"],
+    ["outline","概要を述べる"],
+    ["depict","描写する"],
+    ["portray","描写する"],
+    ["illustrate","説明する、図示する"],
+    ["exemplify","例証する"],
+    ["epitomize","典型となる"],
+    ["symbolize","象徴する"],
+    ["represent","表す"],
+    ["phenomenon","現象"],
+    ["anomaly","異常"],
+    ["irregularity","不規則性"],
+    ["deviation","逸脱"],
+    ["variation","変動"],
+    ["inconsistency","矛盾"],
+    ["contradiction","矛盾"],
+    ["ambivalence","両価性、迷い"],
+    ["reluctance","気が進まないこと"],
+    ["hesitation","ためらい"],
+    ["apprehension","不安、懸念"],
+    ["anxiety","不安"],
+    ["distress","苦悩"],
+    ["turmoil","混乱"],
+    ["chaos","混沌"],
+    ["disorder","無秩序"],
+    ["disarray","混乱"],
+    ["upheaval","大変動"],
+    ["turbulence","乱気流、混乱"],
+    ["instability","不安定"],
+    ["volatility","不安定さ"],
+    ["fragility","脆さ"],
+    ["vulnerability","脆弱性"],
+    ["resilience","回復力"],
+    ["stability","安定"],
+    ["equilibrium","均衡"],
+    ["harmony","調和"],
+    ["discord","不和"],
+    ["conflict","対立"],
+    ["friction","摩擦"],
+    ["tension","緊張"],
+    ["hostility","敵意"],
+    ["animosity","敵意"],
+    ["resentment","憤り"],
+    ["grievance","不満"],
+    ["outrage","激怒"],
+    ["indignation","憤慨"],
+    ["contempt","軽蔑"],
+    ["disdain","軽蔑"],
+    ["scorn","軽蔑"],
+    ["reverence","畏敬"],
+    ["awe","畏怖"],
+    ["admiration","称賛"],
+    ["gratitude","感謝"],
+    ["remorse","後悔"],
+    ["regret","後悔"],
+    ["guilt","罪悪感"],
+    ["shame","恥"],
+    ["embarrassment","恥ずかしさ"],
+    ["humiliation","屈辱"],
+    ["dignity","尊厳"],
+    ["self-esteem","自尊心"],
+    ["confidence","自信"],
+    ["complacency","自己満足"],
+    ["apathy","無関心"],
+    ["indifference","無関心"],
+    ["enthusiasm","熱意"],
+    ["zeal","熱意"],
+    ["fervor","熱情"],
+    ["passion","情熱"],
+    ["ambition","野心"],
+    ["aspiration","願望"],
+    ["yearning","切望"],
+    ["craving","渇望"],
+    ["obsession","執着"],
+    ["addiction","依存"],
+    ["compulsion","強迫"],
+    ["impulse","衝動"],
+    ["urge","衝動"],
+    ["temptation","誘惑"],
+    ["restraint","抑制"],
+    ["discipline","規律"],
+    ["willpower","意志力"],
+    ["determination","決意"],
+    ["tenacity","粘り強さ"],
+    ["fortitude","不屈の精神"],
+    ["endurance","忍耐力"],
+    ["stamina","スタミナ"],
+    ["vigor","活力"],
+    ["vitality","活力"],
+    ["vigilance","警戒"],
+    ["caution","用心"],
+    ["prudence","慎重さ"],
+    ["discretion","分別"],
+    ["tact","機転"],
+    ["finesse","手腕"],
+    ["shrewdness","抜け目のなさ"],
+    ["cunning","狡猾さ"],
+    ["deceit","欺瞞"],
+    ["deception","欺瞞"],
+    ["fraud","詐欺"],
+    ["forgery","偽造"],
+    ["counterfeit","偽造の"],
+    ["plagiarism","盗作"],
+    ["infringement","侵害"],
+    ["gravity","重大さ、重力"],
+    ["magnitude","規模、大きさ"],
+    ["scope","範囲"],
+    ["spectrum","範囲、スペクトル"],
+    ["dimension","側面、次元"],
+    ["facet","側面"],
+    ["aspect","側面"],
+    ["attribute","属性、特質"],
+    ["trait","特性"],
+    ["characteristic","特徴"],
+    ["feature","特徴"],
+    ["component","構成要素"],
+    ["element","要素"],
+    ["factor","要因"],
+    ["variable","変数"],
+    ["criterion","基準"],
+    ["premise","前提"],
+    ["assumption","仮定"],
+    ["presumption","推定"],
+    ["inference","推論"],
+    ["deduction","推論、控除"],
+    ["induction","帰納"],
+    ["correlation","相関"],
+    ["causation","因果関係"],
+    ["implication","含意、影響"],
+    ["ramification","波及効果"],
+    ["repercussion","余波"],
+    ["consequence","結果"],
+    ["outcome","結果"],
+    ["aftermath","余波、影響"],
+    ["legacy","遺産"],
+    ["heritage","遺産、伝統"],
+    ["tradition","伝統"],
+    ["custom","慣習"],
+    ["convention","慣習、しきたり"],
+    ["norm","規範"],
+    ["etiquette","礼儀作法"],
+    ["protocol","儀礼、手順"],
+    ["decorum","礼儀正しさ"],
+    ["taboo","タブー"],
+    ["stigma","汚名"],
+    ["controversy","論争"],
+    ["scandal","スキャンダル"],
+    ["corruption","腐敗"],
+    ["bribery","賄賂"],
+    ["extortion","恐喝"],
+    ["embezzlement","横領"],
+    ["nepotism","縁故主義"],
+    ["favoritism","えこひいき"],
+    ["exploitation","搾取"],
+    ["oppression","抑圧"],
+    ["tyranny","圧政"],
+    ["dictatorship","独裁政治"],
+    ["totalitarianism","全体主義"],
+    ["anarchy","無政府状態"],
+    ["insurrection","暴動"],
+    ["rebellion","反乱"],
+    ["mutiny","反乱"],
+    ["coup","クーデター"],
+    ["regime","政権"],
+    ["administration","政権、行政"],
+    ["cabinet","内閣"],
+    ["parliament","議会"],
+    ["congress","議会"],
+    ["statute","法令"],
+    ["clause","条項"],
+    ["amendment","修正条項"],
+    ["provision","規定"],
+    ["mandate","命令、権限"],
+    ["decree","命令、布告"],
+    ["edict","布告"],
+    ["ordinance","条例"],
+    ["compliance","遵守"],
+    ["enforcement","施行、執行"],
+    ["penalty","罰則"],
+    ["fine","罰金"],
+    ["algorithm","アルゴリズム"],
+    ["automation","自動化"],
+    ["digitize","デジタル化する"],
+    ["innovate","革新する"],
+    ["innovation","革新"],
+    ["breakthrough","画期的な進歩"],
+    ["prototype","試作品"],
+    ["simulate","シミュレーションする"],
+    ["simulation","シミュレーション"],
+    ["synthesize","合成する"],
+    ["synthetic","合成の"],
+    ["hybrid","混成の、ハイブリッドの"],
+    ["nanotechnology","ナノテクノロジー"],
+    ["biotechnology","バイオテクノロジー"],
+    ["robotics","ロボット工学"],
+    ["artificial","人工の"],
+    ["autonomous","自律的な"],
+    ["encrypt","暗号化する"],
+    ["encryption","暗号化"],
+    ["cybersecurity","サイバーセキュリティ"],
+    ["bandwidth","帯域幅"],
+    ["obsolete","時代遅れの"],
+    ["sophisticated","洗練された、精巧な"],
+    ["sophistication","洗練"],
+    ["precision","精密さ"],
+    ["accuracy","正確さ"],
+    ["efficiency","効率"],
+    ["productivity","生産性"],
+    ["output","生産高"],
+    ["input","入力"],
+    ["capacity","能力、容量"],
+    ["potential","潜在能力"],
+    ["capability","能力"],
+    ["aesthetic","美的な"],
+    ["aesthetics","美学"],
+    ["narrative","物語"],
+    ["protagonist","主人公"],
+    ["antagonist","敵役"],
+    ["allegory","寓話"],
+    ["metaphor","隠喩"],
+    ["symbolism","象徴主義"],
+    ["genre","ジャンル"],
+    ["satire","風刺"],
+    ["irony","皮肉"],
+    ["parody","パロディ"],
+    ["manuscript","原稿"],
+    ["publication","出版"],
+    ["authorship","著作(権)"],
+    ["plagiarize","盗作する"],
+    ["critique","批評"],
+    ["masterpiece","傑作"],
+    ["mundane","平凡な"],
+    ["whimsical","気まぐれな"],
+    ["surreal","超現実的な"],
+    ["provocative","挑発的な"],
+    ["poignant","心を打つ"],
+    ["evocative","感情を呼び起こす"],
+    ["vivid","鮮やかな"],
+    ["vibrant","活気のある"],
+    ["terrain","地形"],
+    ["topography","地形学"],
+    ["plateau","高原"],
+    ["peninsula","半島"],
+    ["archipelago","群島"],
+    ["tributary","支流"],
+    ["delta","デルタ、三角州"],
+    ["sediment","堆積物"],
+    ["erosion","浸食"],
+    ["seismic","地震の"],
+    ["volcanic","火山の"],
+    ["tectonic","地殻構造の"],
+    ["tremor","揺れ、震動"],
+    ["climate","気候"],
+    ["precipitation","降水量"],
+    ["humidity","湿度"],
+    ["arid","乾燥した"],
+    ["temperate","温帯の"],
+    ["tropical","熱帯の"],
+    ["cultivate","耕作する、育てる"],
+    ["harvest","収穫する"],
+    ["irrigation","灌漑"],
+    ["livestock","家畜"],
+    ["pesticide","農薬"],
+    ["fertilizer","肥料"],
+    ["organic","有機の"],
+    ["crop","作物"],
+    ["yield","収穫量、産出する"],
+    ["staple","主食"],
+    ["nutrient","栄養素"],
+    ["nutritious","栄養価の高い"],
+    ["commute","通勤する"],
+    ["transit","輸送、通過"],
+    ["logistics","物流"],
+    ["freight","貨物"],
+    ["cargo","積荷"],
+    ["vessel","船"],
+    ["aviation","航空"],
+    ["navigate","航行する、進む"],
+    ["navigation","航法"],
+    ["itinerary","旅程"],
+    ["rehabilitation","リハビリ"],
+    ["physiotherapy","理学療法"],
+    ["nutrition","栄養"],
+    ["metabolism","代謝"],
+    ["cardiovascular","心血管の"],
+    ["respiratory","呼吸の"],
+    ["allergy","アレルギー"],
+    ["insomnia","不眠症"],
+    ["fatigue","疲労"],
+    ["exhaustion","疲労困憊"],
+    ["dehydration","脱水症状"],
+    ["paradigm","パラダイム"],
+    ["framework","枠組み"],
+    ["context","文脈"],
+    ["notion","概念"],
+    ["concept","概念"],
+    ["perspective","視点"],
+    ["viewpoint","視点"],
+    ["stance","立場"],
+    ["standpoint","立場"],
+    ["outlook","見通し"],
+    ["prospect","見込み"],
+    ["forecast","予測(する)"],
+    ["projection","予測"],
+    ["speculation","憶測"],
+    ["conjecture","推測"],
+    ["presumably","おそらく"],
+    ["allegedly","伝えられるところでは"],
+    ["ostensibly","表向きは"],
+    ["seemingly","見たところ"],
+    ["apparently","どうやら"],
+    ["inherently","本質的に"],
+    ["fundamentally","根本的に"],
+    ["predominantly","主に"],
+    ["substantially","大幅に"],
+    ["marginally","わずかに"],
+    ["incrementally","徐々に"],
+    ["exponentially","指数関数的に"],
+    ["drastically","劇的に"],
+    ["significantly","著しく"],
+    ["notably","特に"],
+    ["arguably","ほぼ間違いなく"],
+    ["undergo","経験する"],
+    ["undertake","引き受ける"],
+    ["embark","着手する"],
+    ["initiate","開始する"],
+    ["launch","立ち上げる"],
+    ["implement","実施する"],
+    ["execute","実行する"],
+    ["enact","制定する"],
+    ["formulate","策定する"],
+    ["devise","考案する"],
+    ["conceive","考案する、思いつく"],
+    ["envisage","想定する"],
+    ["envision","思い描く"],
+    ["anticipate","予期する"],
+    ["foresee","予見する"],
+    ["predict","予測する"],
+    ["precede","先行する"],
+    ["succeed","後に続く、成功する"],
+    ["supersede","取って代わる"],
+    ["supplement","補う"],
+    ["substitute","代用する"],
+    ["replace","取り替える"],
+    ["replenish","補充する"],
+    ["gentrification","ジェントリフィケーション"],
+    ["displacement","立ち退き"],
+    ["homelessness","ホームレス状態"],
+    ["poverty","貧困"],
+    ["inequality","不平等"],
+    ["disparity","格差"],
+    ["equity","公平性"],
+    ["welfare","福祉"],
+    ["pension","年金"],
+    ["retirement","退職"],
+    ["workforce","労働力"],
+    ["unemployment","失業"],
+    ["underemployment","不完全雇用"],
+    ["outsourcing","外部委託"],
+    ["broadcast","放送する"],
+    ["journalism","ジャーナリズム"],
+    ["tabloid","タブロイド紙"],
+    ["headline","見出し"],
+    ["editorial","社説"],
+    ["misinformation","誤情報"],
+    ["disinformation","偽情報"],
+    ["rhetoric","修辞、レトリック"],
+    ["persuasive","説得力のある"],
+    ["subjective","主観的な"],
+    ["objective","客観的な"],
+    ["bias","偏見"],
+    ["impartial","公平な"],
+    ["partisan","党派的な"],
+    ["neutral","中立の"],
+    ["credibility","信頼性"],
+    ["transparency","透明性"],
+    ["accountability","説明責任"],
+    ["scrutiny","精査"],
+    ["whistleblower","内部告発者"],
+    ["leak","漏洩(する)"],
+    ["confidential","機密の"],
+    ["classified","機密扱いの"],
+    ["disclosure","開示"],
+    ["anonymity","匿名性"],
+    ["privacy","プライバシー"],
+    ["merger","合併"],
+    ["acquisition","買収"],
+    ["takeover","乗っ取り"],
+    ["stakeholder","利害関係者"],
+    ["shareholder","株主"],
+    ["portfolio","ポートフォリオ"],
+    ["diversify","多様化する"],
+    ["conglomerate","複合企業"],
+    ["franchise","フランチャイズ"],
+    ["venture","事業、ベンチャー"],
+    ["startup","新興企業"],
+    ["overhead","諸経費"],
+    ["turnover","総取引高、離職率"],
+    ["layoff","一時解雇"],
+    ["downsize","人員削減する"],
+    ["restructure","再編する"],
+    ["outsource","外部委託する"],
+    ["recruit","採用する"],
+    ["retain","保持する"],
+    ["appraisal","評価"],
+    ["incentivize","動機付ける"],
+    ["morality","道徳"],
+    ["virtue","美徳"],
+    ["vice","悪徳"],
+    ["ethics","倫理"],
+    ["utilitarian","功利主義の"],
+    ["existential","実存的な"],
+    ["metaphysical","形而上学的な"],
+    ["relativism","相対主義"],
+    ["determinism","決定論"],
+    ["consciousness","意識"],
+    ["sentient","知覚力のある"],
+    ["rational","理性的な"],
+    ["irrational","不合理な"],
+    ["logical","論理的な"],
+    ["fallacy","誤謬"],
+    ["constant","定数"],
+    ["equation","方程式"],
+    ["statistic","統計"],
+    ["probability","確率"],
+    ["sample","標本"],
+    ["theorem","定理"],
+    ["proof","証明"],
+    ["colonize","植民地化する"],
+    ["colonization","植民地化"],
+    ["imperialism","帝国主義"],
+    ["conquest","征服"],
+    ["dynasty","王朝"],
+    ["monarchy","君主制"],
+    ["feudal","封建的な"],
+    ["revolution","革命"],
+    ["renaissance","ルネサンス"],
+    ["enlightenment","啓蒙運動"],
+    ["industrialization","産業化"],
+    ["migration","移住"],
+    ["emigrate","(国外へ)移住する"],
+    ["immigrate","(国内へ)移住する"],
+    ["kinship","親族関係"],
+    ["sibling","きょうだい"],
+    ["cohabitation","同棲"],
+    ["divorce","離婚"],
+    ["estrange","疎遠にする"],
+    ["bond","絆"],
+    ["intimacy","親密さ"],
+    ["affection","愛情"],
+    ["attachment","愛着"],
+    ["homicide","殺人"],
+    ["robbery","強盗"],
+    ["burglary","住居侵入窃盗"],
+    ["theft","窃盗"],
+    ["larceny","窃盗罪"],
+    ["vandalism","器物損壊"],
+    ["arson","放火"],
+    ["kidnapping","誘拐"],
+    ["extradition","犯罪人引き渡し"],
+    ["acquittal","無罪判決"],
+    ["conviction","有罪判決"],
+    ["indictment","起訴"],
+    ["prosecution","起訴、検察"],
+    ["defense","弁護"],
+    ["appeal","上訴"],
+    ["parole","仮釈放"],
+    ["probation","保護観察"],
+    ["nonrenewable","非再生可能な"],
+    ["greenhouse","温室"],
+    ["sustainability","持続可能性"],
+    ["conservation","保護、保全"],
+    ["depletion","枯渇"],
+    ["contamination","汚染"],
+    ["toxic","有毒な"],
+    ["hazardous","危険な"],
+    ["radiation","放射線"],
+    ["nuclear","核の"],
+    ["solar","太陽の"],
+    ["geothermal","地熱の"],
+    ["metropolitan","大都市の"],
+    ["suburban","郊外の"],
+    ["rural","田舎の"],
+    ["overpopulation","人口過剰"],
+    ["congestion","渋滞、混雑"],
+    ["commodification","商品化"],
+    ["competitive","競争力のある"],
+    ["doping","ドーピング"],
+    ["disqualify","失格にする"],
+    ["epidemiology","疫学"],
+    ["malicious","悪意のある"],
+    ["benevolent","慈悲深い"],
+    ["gregarious","社交的な"],
+    ["introverted","内向的な"],
+    ["extroverted","外向的な"],
+    ["sociable","社交的な"],
+    ["reclusive","隠遁的な"],
+    ["solitary","孤独な"],
+    ["naive","世間知らずな"],
+    ["gullible","だまされやすい"],
+    ["astute","抜け目ない"],
+    ["perceptive","洞察力のある"],
+    ["discerning","目利きの"],
+    ["scrupulous","几帳面な、良心的な"],
+    ["unscrupulous","不誠実な"],
+    ["candid","率直な"],
+    ["blunt","ぶっきらぼうな"],
+    ["tactful","如才ない"],
+    ["diplomatic","外交的な、如才ない"],
+    ["condescending","見下すような"],
+    ["patronizing","見下すような"],
+    ["belittle","けなす"],
+    ["ridicule","あざける"],
+    ["mock","あざける"],
+    ["taunt","からかう"],
+    ["harass","嫌がらせをする"],
+    ["bully","いじめる"],
+    ["intimidate","脅す"],
+    ["coerce","強制する"],
+    ["compel","強いる"],
+    ["oblige","義務付ける"],
+    ["obligatory","義務的な"],
+    ["mandatory","義務的な"],
+    ["voluntary","自発的な"],
+    ["spontaneous","自然発生的な"],
+    ["impromptu","即興の"],
+    ["deliberate","故意の、慎重な"],
+    ["premeditated","計画的な"],
+    ["inadvertent","不注意の"],
+    ["unintentional","意図しない"],
+    ["negligent","怠慢な"],
+    ["negligence","過失"],
+    ["diligent","勤勉な"],
+    ["industrious","勤勉な"],
+    ["lethargic","無気力な"],
+    ["languid","けだるい"],
+    ["sluggish","動きの遅い"],
+    ["brisk","きびきびした"],
+    ["nimble","機敏な"],
+    ["agile","敏捷な"],
+    ["dexterous","器用な"],
+    ["clumsy","不器用な"],
+    ["awkward","ぎこちない"],
+    ["graceful","優雅な"],
+    ["elegant","上品な"],
+    ["crude","粗野な"],
+    ["vulgar","下品な"],
+    ["refined","洗練された"],
+    ["ostentatious","見せびらかしの"],
+    ["extravagant","贅沢な"],
+    ["frugal","倹約な"],
+    ["thrifty","倹約な"],
+    ["lavish","豪華な"],
+    ["austere","質素な、厳格な"],
+    ["stark","殺風景な、厳しい"],
+    ["bleak","陰鬱な"],
+    ["grim","険しい、厳しい"],
+    ["dismal","陰気な"],
+    ["gloomy","陰気な"],
+    ["somber","陰気な"],
+    ["pessimistic","悲観的な"],
+    ["nonchalant","無頓着な"],
+    ["aloof","よそよそしい"],
+    ["detached","超然とした"],
+    ["withdrawn","引きこもった"],
+    ["reserved","控えめな"],
+    ["outspoken","率直にものを言う"],
+    ["assertive","自己主張の強い"],
+    ["domineering","支配的な"],
+    ["authoritarian","権威主義的な"],
+    ["submissive","従順な"],
+    ["compliant","従順な"],
+    ["docile","従順な"],
+    ["rebellious","反抗的な"],
+    ["defiant","反抗的な"],
+    ["insubordinate","反抗的な"],
+    ["obstinate","頑固な"],
+    ["adamant","断固とした"],
+    ["resolute","断固とした"],
+    ["steadfast","不動の"],
+    ["unwavering","揺るがない"],
+    ["fickle","気まぐれな"],
+    ["capricious","気まぐれな"],
+    ["erratic","不規則な、気まぐれな"],
+    ["volatile","不安定な、揮発性の"],
+    ["temperamental","気分屋の"],
+    ["irritable","短気な"],
+    ["catastrophe","大惨事"],
+    ["calamity","災難"],
+    ["casualty","死傷者"],
+    ["fatality","死亡者"],
+    ["evacuate","避難する"],
+    ["evacuation","避難"],
+    ["shelter","避難所"],
+    ["relief","救援"],
+    ["humanitarian","人道的な"],
+    ["devastation","壊滅的被害"],
+    ["devastate","壊滅させる"],
+    ["ravage","荒廃させる"],
+    ["blizzard","猛吹雪"],
+    ["avalanche","雪崩"],
+    ["landslide","地滑り"],
+    ["wildfire","山火事"],
+    ["molecule","分子"],
+    ["particle","粒子"],
+    ["compound","化合物"],
+    ["reaction","反応"],
+    ["catalyst","触媒"],
+    ["enzyme","酵素"],
+    ["organism","生物"],
+    ["evolve","進化する"],
+    ["evolution","進化"],
+    ["adaptation","適応"],
+    ["extinction","絶滅"],
+    ["velocity","速度"],
+    ["momentum","運動量、勢い"],
+    ["density","密度"],
+    ["demotion","降格"],
+    ["seniority","年功"],
+    ["tenure","終身雇用、在職期間"],
+    ["freelance","フリーランスの"],
+    ["telecommute","在宅勤務する"],
+    ["burnout","燃え尽き症候群"],
+    ["morale","士気"],
+    ["absenteeism","欠勤"],
+    ["essence","本質"],
+    ["crux","核心"],
+    ["gist","要点"],
+    ["underlying","根底にある"],
+    ["overarching","包括的な"],
+    ["holistic","全体論的な"],
+    ["comprehensive","包括的な"],
+    ["exhaustive","徹底的な、網羅的な"],
+    ["thorough","徹底的な"],
+    ["cursory","大雑把な、うわべだけの"],
+    ["superficial","表面的な"],
+    ["peripheral","周辺的な"],
+    ["tangential","本題からそれた"],
+    ["pertinent","関連のある"],
+    ["unequivocally","明確に、疑いなく"],
+    ["unanimously","満場一致で"],
+    ["collectively","集団で"],
+    ["comparatively","比較的"],
+    ["proportionally","比例して"],
+    ["disproportionately","不釣り合いに"],
+  ];
+
+(function(){
+  const STORAGE_KEY = "vocab-cards-v3"; // legacy single-deck key (used for migration only)
+  const LEGACY_KEY_V2 = "vocab-cards-v2";
+  const LEGACY_KEY_V1 = "vocab-cards-v1";
+  const DECK_REGISTRY_KEY = "vocab-deck-registry";
+  function deckStorageKey(id){ return "vocab-deck-" + id; }
+  const DEFAULT_GRADUATE_STREAK = 4; // consecutive "わかる" needed to graduate (stop reviewing)
+
+  function formatLocalDate(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  function todayStr(){
+    return formatLocalDate(new Date());
+  }
+  function genId(){
+    return "w" + Date.now() + Math.random().toString(36).slice(2, 7);
+  }
+  function makeCard(word, meaning){
+    return { id: genId(), word, meaning, correctStreak: 0, graduated: false, introduced: false, totalWrongCount: 0 };
+  }
+  function takeCircular(pool, cursor, n){
+    if(pool.length === 0 || n <= 0) return [];
+    const result = [];
+    const c = ((cursor % pool.length) + pool.length) % pool.length;
+    for(let i = 0; i < n && i < pool.length; i++){
+      result.push(pool[(c + i) % pool.length]);
+    }
+    return result;
+  }
+
+  const QUOTES = [
+    { en: "Your future is created by what you do today, not tomorrow.", ja: "未来は、明日ではなく今日の行動によって作られる。", author: "Robert Kiyosaki" },
+    { en: "Energy and persistence conquer all things.", ja: "情熱と粘り強さは、あらゆるものに打ち勝つ。", author: "Benjamin Franklin" },
+    { en: "If you dream it, you can do it.", ja: "夢に見ることができるなら、実現できる。", author: "Walt Disney" },
+    { en: "Education is the movement from darkness to light.", ja: "教育とは、闇から光へと向かう歩みである。", author: "Allan Bloom" },
+    { en: "Education is the key to unlock the golden door of freedom.", ja: "教育は、自由という黄金の扉を開ける鍵である。", author: "George Washington Carver" },
+    { en: "What you do today can improve all your tomorrows.", ja: "今日の行動が、これから先のすべての明日を良くする。", author: "Ron Clark" },
+    { en: "Don't let what you cannot do interfere with what you can do.", ja: "できないことに、できることの邪魔をさせてはいけない。", author: "John Wooden" },
+    { en: "Everyone you will ever meet knows something you don't.", ja: "出会う人は皆、あなたの知らない何かを知っている。", author: "Bill Nye" },
+    { en: "I have not failed. I've just found 10,000 ways that won't work.", ja: "私は失敗していない。うまくいかない方法を1万通り見つけただけだ。", author: "Thomas Edison" },
+    { en: "Education is the most powerful weapon which you can use to change the world.", ja: "教育は、世界を変えるために使える最も強力な武器である。", author: "Nelson Mandela" },
+    { en: "Knowledge is of no value unless you put it into practice.", ja: "知識は、実践しなければ価値を持たない。", author: "Anton Chekhov" },
+    { en: "Perseverance is failing 19 times and succeeding the 20th.", ja: "忍耐とは、19回失敗して20回目に成功することだ。", author: "Julie Andrews" },
+    { en: "Perseverance is not a long race; it is many short races.", ja: "忍耐とは長い一つの競走ではなく、短い競走の積み重ねである。", author: "Walter Elliot" },
+    { en: "If you are willing to learn, no one can stop you.", ja: "学ぶ意志さえあれば、誰もあなたを止められない。", author: "Zig Ziglar" },
+    { en: "Let us pick up our books and our pens.", ja: "本とペンを手に取ろう。", author: "Malala Yousafzai" },
+    { en: "You are braver than you believe, and smarter than you think.", ja: "あなたは自分が思うより勇敢で、思うより賢い。", author: "A.A. Milne" },
+    { en: "The secret of getting ahead is getting started.", ja: "前進するための秘訣は、始めることだ。", author: "Mark Twain" },
+    { en: "There are no shortcuts to any place worth going.", ja: "行く価値のある場所に、近道はない。", author: "Beverly Sills" },
+    { en: "Hard work beats talent when talent doesn't work hard.", ja: "才能が努力を怠るなら、努力が才能に勝る。", author: "Tim Notke" },
+    { en: "Success is the sum of small efforts repeated day in and day out.", ja: "成功とは、日々繰り返す小さな努力の積み重ねである。", author: "Robert Collier" },
+    { en: "You don't have to be great to start, but you have to start.", ja: "始めるのに、優れている必要はない。ただ始めればいい。", author: "Zig Ziglar" },
+    { en: "The best time to plant a tree was 20 years ago.", ja: "木を植える一番良い時期は、20年前だった。", author: "Chinese Proverb" },
+    { en: "Our greatest weakness lies in giving up.", ja: "私たちの最大の弱点は、あきらめることにある。", author: "Thomas Edison" },
+    { en: "Success is not final, failure is not fatal.", ja: "成功はゴールではなく、失敗も終わりではない。", author: "Winston Churchill" },
+    { en: "Success is no accident. It is hard work, perseverance, learning, studying, sacrifice.", ja: "成功は偶然ではない。それは努力と忍耐と学びと犠牲の結果だ。", author: "Pelé" },
+    { en: "Success isn't overnight. It's when every day you get a little better.", ja: "成功は一夜にして訪れない。毎日少しずつ良くなることの積み重ねだ。", author: "Dwayne Johnson" },
+    { en: "The secret of success is to do the common things uncommonly well.", ja: "成功の秘訣は、平凡なことを非凡なまでにやり抜くことだ。", author: "John D. Rockefeller" },
+    { en: "There is no substitute for hard work.", ja: "努力に代わるものは存在しない。", author: "Thomas Edison" },
+    { en: "Patience and perseverance have a magical effect before which difficulties disappear.", ja: "忍耐と根気の前では、困難は不思議と姿を消していく。", author: "John Quincy Adams" },
+    { en: "Procrastination makes easy things hard, hard things harder.", ja: "先延ばしは、簡単なことを難しくし、難しいことをもっと難しくする。", author: "Mason Cooley" },
+    { en: "There are no traffic jams on the extra mile.", ja: "一歩先まで頑張る道には、渋滞がない。", author: "Zig Ziglar" },
+    { en: "I've failed over and over again, and that is why I succeed.", ja: "私は何度も何度も失敗してきた。だからこそ成功できるのだ。", author: "Michael Jordan" },
+    { en: "There are no secrets to success, only hard work and learning from failure.", ja: "成功に秘密はない。あるのは準備と努力、そして失敗から学ぶことだけだ。", author: "Colin Powell" },
+    { en: "By perseverance, the snail reached the ark.", ja: "根気強く進み続けたからこそ、かたつむりは方舟にたどり着いた。", author: "Charles Spurgeon" },
+    { en: "The purpose of education is to replace an empty mind with an open one.", ja: "教育の目的は、空っぽの心を開かれた心に変えることだ。", author: "Malcolm Forbes" },
+    { en: "Work gives you meaning and purpose and life is empty without it.", ja: "仕事は人生に意味と目的を与える。それがなければ人生は空っぽだ。", author: "Stephen Hawking" },
+    { en: "If you're going through hell, keep going.", ja: "地獄のような状況にいるなら、そのまま進み続けろ。", author: "Winston Churchill" },
+    { en: "You don't learn to walk by following rules. You learn by doing.", ja: "歩き方はルールを守って学ぶのではなく、実際にやってみて学ぶものだ。", author: "Richard Branson" },
+    { en: "Literacy is the most basic currency of the knowledge economy.", ja: "読み書きの力は、知識社会における最も基本的な通貨である。", author: "Barack Obama" },
+    { en: "Wisdom comes not from age, but from education and learning.", ja: "知恵は年齢からではなく、教育と学びから生まれる。", author: "Anton Chekhov" },
+    { en: "An investment in knowledge pays the best interest.", ja: "知識への投資は、最も高い利息を生む。", author: "Benjamin Franklin" },
+    { en: "Education is the passport to the future.", ja: "教育は、未来へのパスポートである。", author: "Malcolm X" },
+    { en: "The beautiful thing about learning is that no one can take it from you.", ja: "学びの美しいところは、誰にも奪われないということだ。", author: "B.B. King" },
+    { en: "Learn as if you were to live forever.", ja: "永遠に生きるつもりで学びなさい。", author: "Mahatma Gandhi" },
+    { en: "Anyone who stops learning is old, whether at twenty or eighty.", ja: "学ぶことをやめた者は、20歳であろうと80歳であろうと老いている。", author: "Henry Ford" },
+    { en: "The more that you read, the more things you will know.", ja: "読めば読むほど、多くのことを知ることになる。", author: "Dr. Seuss" },
+    { en: "Develop a passion for learning. If you do, you will never cease to grow.", ja: "学ぶことへの情熱を育てなさい。そうすれば、成長が止まることはない。", author: "Anthony J. D'Angelo" },
+    { en: "Try not to become a man of success, but rather a man of value.", ja: "成功する人間になろうとするより、価値ある人間になろうとしなさい。", author: "Albert Einstein" },
+    { en: "Don't watch the clock; do what it does. Keep going.", ja: "時計を見つめるのではなく、時計のように進み続けなさい。", author: "Sam Levenson" },
+    { en: "A little progress each day adds up to big results.", ja: "毎日の小さな進歩が、やがて大きな結果になる。", author: "Satya Nani" },
+    { en: "Learning without thought is labor lost; thought without learning is perilous.", ja: "学びて思わざれば則ち罔し、思いて学ばざれば則ち殆し。", author: "Confucius" },
+    { en: "By three methods we may learn wisdom: reflection, imitation, and experience.", ja: "人は三つの方法で知恵を学べる。内省、模倣、そして経験だ。", author: "Confucius" },
+    { en: "Real knowledge is to know the extent of one's ignorance.", ja: "本当の知識とは、自分がどれだけ無知かを知ることだ。", author: "Confucius" },
+    { en: "I hear, I forget. I see, I remember. I do, I understand.", ja: "聞いたことは忘れる。見たことは覚える。やったことは理解する。", author: "Confucius" },
+    { en: "To know what you know and what you do not know is true knowledge.", ja: "知っていることと知らないことを区別できること、それが本当の知識である。", author: "Confucius" },
+    { en: "Study the past, if you would define the future.", ja: "未来を定めたいなら、過去を学びなさい。", author: "Confucius" },
+    { en: "You cannot open a book without learning something.", ja: "本を開けば、必ず何かを学ぶことになる。", author: "Confucius" },
+    { en: "The man who asks a question is a fool for a minute.", ja: "質問する者は一瞬だけ愚かに見えるが、聞かない者は一生愚かなままだ。", author: "Confucius" },
+    { en: "Acquire new knowledge while thinking over the old.", ja: "古きを訪ねて新しきを知る。", author: "Confucius" },
+    { en: "The essence of knowledge is, having it, to use it.", ja: "知識の本質は、それを実際に使うことにある。", author: "Confucius" },
+    { en: "The gem cannot be polished without friction, nor man perfected without trials.", ja: "宝石は摩擦なしに磨かれず、人も試練なしに完成しない。", author: "Confucius" },
+    { en: "He who learns but does not think is lost.", ja: "学んでも考えなければ、道に迷う。", author: "Confucius" },
+    { en: "Better a diamond with a flaw than a pebble without.", ja: "傷のあるダイヤモンドは、傷のない小石よりも価値がある。", author: "Confucius" },
+    { en: "Wisdom, compassion, and courage are universally recognized moral qualities.", ja: "知恵と思いやりと勇気は、誰もが認める徳である。", author: "Confucius" },
+    { en: "Faced with what is right, to leave it undone shows a lack of courage.", ja: "正しいことだと分かっていながら行わないのは、勇気がない証拠だ。", author: "Confucius" },
+    { en: "Everything has beauty, but not everyone sees it.", ja: "すべてのものに美しさはあるが、それが見える人ばかりではない。", author: "Confucius" },
+    { en: "The man who moves a mountain begins by carrying away small stones.", ja: "山を動かす者は、小さな石を運ぶことから始める。", author: "Confucius" },
+    { en: "Never tire of learning, and never tire of teaching others.", ja: "学ぶことに飽きず、人に教えることにも飽きない。", author: "Confucius" },
+    { en: "The will to win and the desire to succeed unlock the door to excellence.", ja: "勝ちたいという意志と成功への願いが、卓越への扉を開く。", author: "Confucius" },
+    { en: "A journey of a thousand miles begins with a single step.", ja: "千里の道も一歩から。", author: "Lao Tzu" },
+    { en: "Nature does not hurry, yet everything is accomplished.", ja: "自然は急がない。それでもすべてのことは成し遂げられる。", author: "Lao Tzu" },
+    { en: "A good traveler has no fixed plans and is not intent upon arriving.", ja: "良き旅人は決まった計画を持たず、目的地に着くことにこだわらない。", author: "Lao Tzu" },
+    { en: "Knowing others is wisdom; knowing yourself is enlightenment.", ja: "他人を知ることは知恵、自分を知ることは悟りである。", author: "Lao Tzu" },
+    { en: "The wise man does not lay up his own treasures.", ja: "賢者は自分のために宝を蓄えたりしない。", author: "Lao Tzu" },
+    { en: "New beginnings are often disguised as painful endings.", ja: "新しい始まりは、しばしば辛い終わりの姿をして訪れる。", author: "Lao Tzu" },
+    { en: "Watch your thoughts; they become words.", ja: "自分の思考に気をつけなさい。それはやがて言葉になる。", author: "Lao Tzu" },
+    { en: "To attain knowledge, add things every day; to attain wisdom, remove things every day.", ja: "知識を得るには毎日何かを足し、知恵を得るには毎日何かを引きなさい。", author: "Lao Tzu" },
+    { en: "What we think, we become.", ja: "私たちは、考えた通りの人間になる。", author: "Buddha" },
+    { en: "Better than a thousand hollow words is one word that brings peace.", ja: "空虚な千の言葉より、心に平安をもたらす一言のほうが尊い。", author: "Buddha" },
+    { en: "The mind is everything. What you think, you become.", ja: "心がすべてである。考えたことが、そのまま自分になる。", author: "Buddha" },
+    { en: "Peace comes from within. Do not seek it without.", ja: "平安は内側からくる。外に求めてはいけない。", author: "Buddha" },
+    { en: "To conquer oneself is a greater victory than to conquer thousands in battle.", ja: "自分に打ち勝つことは、戦場で千の敵に勝つことよりも大きな勝利である。", author: "Buddha" },
+    { en: "The path is near, but people seek it afar.", ja: "道はすぐ近くにあるのに、人はそれを遠くに求めてしまう。", author: "Mencius" },
+    { en: "A great man is one who does not lose his child's heart.", ja: "偉大な人とは、子どものような純粋な心を失わない人のことだ。", author: "Mencius" },
+    { en: "If you know yourself, you need not fear the result of a hundred battles.", ja: "自分自身を知っていれば、百の戦いの結果を恐れる必要はない。", author: "Sun Tzu" },
+    { en: "In the midst of chaos, there is also opportunity.", ja: "混沌の中にも、機会は存在する。", author: "Sun Tzu" },
+    { en: "Fall seven times, stand up eight.", ja: "七転び八起き。", author: "Japanese Proverb" },
+    { en: "Vision without action is a daydream. Action without vision is a nightmare.", ja: "行動を伴わない理想は白昼夢であり、理想を伴わない行動は悪夢である。", author: "Japanese Proverb" },
+    { en: "A single arrow is easily broken, but not ten in a bundle.", ja: "矢は一本なら簡単に折れるが、十本束ねれば折れない。", author: "Japanese Proverb" },
+    { en: "The nail that sticks out gets hammered down.", ja: "出る杭は打たれる。", author: "Japanese Proverb" },
+    { en: "Knowledge will give you power, but character respect.", ja: "知識は力を与えるが、人格は尊敬を与える。", author: "Bruce Lee" },
+    { en: "Empty your mind, be formless, shapeless, like water.", ja: "心を空にし、形を持たず、水のようであれ。", author: "Bruce Lee" },
+    { en: "The successful warrior is the average man with laser-like focus.", ja: "成功する戦士とは、ごく普通の人間が、鋭く一点に集中しているだけの姿だ。", author: "Bruce Lee" },
+    { en: "I fear the man who has practiced one kick 10,000 times.", ja: "私が恐れるのは、一つの蹴りを1万回練習した男だ。", author: "Bruce Lee" },
+    { en: "Share your knowledge. It's a way to achieve immortality.", ja: "知識を分かち合いなさい。それは不滅に至る一つの方法だ。", author: "Dalai Lama" },
+    { en: "Where ignorance is our master, there is no possibility of real peace.", ja: "無知が私たちの主人である限り、本当の平和はあり得ない。", author: "Dalai Lama" },
+    { en: "Don't limit a child to your own learning.", ja: "子どもを、自分自身の学びの範囲に閉じ込めてはいけない。", author: "Rabindranath Tagore" },
+    { en: "The expert in anything was once a beginner.", ja: "どんな分野の達人も、かつては初心者だった。", author: "Proverb" },
+    { en: "He that would perfect his work must first sharpen his tools.", ja: "仕事を完璧に成し遂げたい者は、まず道具を研ぐべきだ。", author: "Confucius" },
+    { en: "Only the wisest and the most foolish of men never change.", ja: "最も賢い者と最も愚かな者だけが、決して変わらない。", author: "Confucius" },
+    { en: "We must suffer either the pain of discipline or the pain of regret.", ja: "人は皆、規律の痛みか後悔の痛みのどちらかを味わうことになる。", author: "Jim Rohn" },
+    { en: "In a year from now you will wish you had started today.", ja: "1年後、あなたは「今日始めていればよかった」と後悔するだろう。", author: "Karen Lamb" },
+    { en: "Do something today that your future self will thank you for.", ja: "未来の自分が感謝するようなことを、今日やりなさい。", author: "Sean Patrick Flanery" },
+    { en: "Amateurs sit and wait for inspiration; the rest of us just go to work.", ja: "アマチュアはやる気が湧くのを座って待つ。プロはとにかく作業にとりかかる。", author: "Stephen King" },
+    { en: "Action is the foundational key to all success.", ja: "行動こそが、すべての成功の基礎となる鍵である。", author: "Pablo Picasso" },
+    { en: "The only bad workout is the one that didn't happen.", ja: "唯一の最悪なトレーニングとは、やらなかったトレーニングのことだ。", author: "Fitness Proverb" },
+    { en: "Never give up on a dream because of the time it will take.", ja: "達成に時間がかかるという理由だけで、夢をあきらめてはいけない。", author: "Earl Nightingale" },
+    { en: "Someday is a disease that will take your dreams to the grave.", ja: "「いつか」という言葉は、あなたの夢を墓場まで持っていく病である。", author: "Timothy Ferriss" },
+    { en: "Done is better than perfect.", ja: "完璧を目指すより、まず終わらせろ。", author: "Sheryl Sandberg" },
+    { en: "Continuous improvement is better than delayed perfection.", ja: "先延ばしにされた完璧よりも、絶え間ない改善のほうがいい。", author: "Mark Twain" },
+    { en: "Don't let the perfect be the enemy of the good.", ja: "完璧を、良いことの敵にしてはならない。", author: "Voltaire" },
+    { en: "Mistakes are proof that you are trying.", ja: "間違いは、あなたが挑戦している証だ。", author: "Unknown" },
+    { en: "Failure is simply the opportunity to begin again, more intelligently.", ja: "失敗とは、より賢くやり直すための機会にすぎない。", author: "Henry Ford" },
+    { en: "A person who never made a mistake never tried anything new.", ja: "一度も失敗したことのない人は、新しいことに挑戦したことがない人だ。", author: "Albert Einstein" },
+    { en: "First we make our habits, then our habits make us.", ja: "最初は人が習慣を作り、やがて習慣が人を作る。", author: "John Dryden" },
+    { en: "You don't have to be extreme, just consistent.", ja: "極端である必要はない。ただ一貫していればいい。", author: "Unknown" },
+    { en: "Small daily improvements over time lead to stunning results.", ja: "毎日の小さな改善が、やがて驚くべき結果をもたらす。", author: "Robin Sharma" },
+    { en: "Motivation is what gets you started. Habit is what keeps you going.", ja: "やる気は始めるきっかけに過ぎない。前進させ続けるのは習慣だ。", author: "Jim Rohn" },
+    { en: "You do not rise to your goals; you fall to your systems.", ja: "人は目標の高さまで到達するのではなく、自分の仕組みのレベルまで落ちる。", author: "James Clear" },
+    { en: "We are what we repeatedly do; excellence is a habit.", ja: "私たちは繰り返し行うことの結晶である。卓越性とは、習慣である。", author: "Will Durant" },
+    { en: "What you do every day matters more than what you do occasionally.", ja: "たまにやることより、毎日やることのほうがはるかに重要だ。", author: "Gretchen Rubin" },
+    { en: "Dripping water hollows out stone, not through force but through persistence.", ja: "落ち続ける水滴は石に穴を開ける。力でなく、継続によってである。", author: "Ovid" },
+    { en: "Drop by drop is the water pot filled.", ja: "一滴一滴の積み重ねが、やがて水差しを満たす。", author: "Buddha" },
+    { en: "Discipline is choosing between what you want now and what you want most.", ja: "規律とは、今すぐ欲しいものと、最も欲しいものの、どちらかを選ぶことだ。", author: "Abraham Lincoln" },
+    { en: "It's not what we do once in a while that shapes our lives.", ja: "私たちの人生を形作るのは、たまにやることではない。", author: "Tony Robbins" },
+  ];
+  function todaysQuote(){
+    const t = todayStr();
+    let hash = 0;
+    for(let i = 0; i < t.length; i++){ hash = (hash * 31 + t.charCodeAt(i)) >>> 0; }
+    return QUOTES[hash % QUOTES.length];
+  }
+
+
+  const DEFAULT_DATA = {
+    cards: SEED_WORDS.map((w) => makeCard(w[0], w[1])),
+    settings: { newPerDay: 100, maintBatchSize: 200, graduateStreak: DEFAULT_GRADUATE_STREAK, randomDefaultCount: 20, swampThreshold: 5 },
+    schedule: null, // computed on first load
+    history: [] // daily snapshots: {date, graduated, total}
+  };
+  function makeEmptyDeckData(){
+    return {
+      cards: [],
+      settings: { newPerDay: 100, maintBatchSize: 200, graduateStreak: DEFAULT_GRADUATE_STREAK, randomDefaultCount: 20, swampThreshold: 5 },
+      schedule: null,
+      history: []
+    };
+  }
+
+  function freshSchedule(){
+    return {
+      phase: "learning",     // 'learning' | 'maintenance'
+      cycleDay: 1,             // 1-7 within the learning cycle
+      currentStageIds: null,   // fixed word-id list for the stage currently in progress
+      answeredIds: [],          // ids from currentStageIds already answered this stage
+      batchIds: [],              // accumulator: ids introduced across cycleDay 1-5 (used on day 6)
+      wrongIds: [],               // carried "must review" ids from the previous stage
+      maintCursor: 0,
+      maintCircularCount: 0,  // how many of the current maint stage's fresh slots came from the rotation (vs priority new words); used to advance the cursor correctly
+      sessionWrongIds: [],
+      sessionNewIds: []
+    };
+  }
+
+  let data = null;
+  let currentTab = "main";
+  let focusMode = false;
+  let phase = "guess"; // 'guess' | 'revealed'  (card flip state, unrelated to schedule phase)
+  let pendingKnown = null;
+  let randomQueue = [];   // array of card ids for the current random-review session
+  let randomIndex = 0;    // pointer into randomQueue
+  let randomMode = "all"; // 'all' | 'weak'
+  let randomDirection = "en-ja"; // 'en-ja' (normal) | 'ja-en' (speaking test)
+
+  const el = (id) => document.getElementById(id);
+  const wordText = el("word-text");
+  const stageBadge = el("stage-badge");
+  const swampBadge = el("swamp-badge");
+  const meaningText = el("meaning-text");
+  const film = el("film");
+  const progress = el("progress");
+  const statsLine = el("stats-line");
+  const phaseBanner = el("phase-banner");
+  const choiceButtons = el("choice-buttons");
+  const nextButtons = el("next-buttons");
+  const advanceBtn = el("btn-advance");
+  const deleteForeverBtn = el("btn-delete-forever");
+  const emptyState = el("empty-state");
+  const card = el("card");
+  const deckView = el("deck-view");
+  const addView = el("add-view");
+  const toast = el("toast");
+  const speakBtn = el("btn-speak");
+  const randomControls = el("random-controls");
+  const mainFilterToggle = el("main-filter-toggle");
+  const inRandomCount = el("in-random-count");
+  const chkRandomAutoplay = el("chk-random-autoplay");
+  const btnStartRandom = el("btn-start-random");
+  const growthView = el("growth-view");
+  const listView = el("list-view");
+  const inListSearch = el("in-list-search");
+  const listSummary = el("list-summary");
+  const wordListContainer = el("word-list-container");
+  const btnShuffleList = el("btn-shuffle-list");
+  const quoteEn = el("quote-en");
+  const quoteJa = el("quote-ja");
+  const quoteAuthor = el("quote-author");
+  const btnSpeakQuote = el("btn-speak-quote");
+  const growthBar = el("growth-bar");
+  const growthLegend = el("growth-legend");
+  const growthNumbers = el("growth-numbers");
+  const growthHistory = el("growth-history");
+  const heatmapGrid = el("heatmap-grid");
+
+  // --- Speech (Web Speech API) ---
+  const speechSupported = "speechSynthesis" in window;
+  let englishVoice = null;
+  let japaneseVoice = null;
+  function pickVoice(){
+    if(!speechSupported) return;
+    const voices = window.speechSynthesis.getVoices();
+    if(!voices.length) return;
+    englishVoice =
+      voices.find(v => v.lang === "en-US" && /female|samantha|zira|google us/i.test(v.name)) ||
+      voices.find(v => v.lang === "en-US") ||
+      voices.find(v => v.lang && v.lang.startsWith("en")) ||
+      voices[0];
+    japaneseVoice =
+      voices.find(v => v.lang === "ja-JP") ||
+      voices.find(v => v.lang && v.lang.startsWith("ja")) ||
+      null;
+  }
+  if(speechSupported){
+    pickVoice();
+    window.speechSynthesis.onvoiceschanged = pickVoice;
+  } else {
+    speakBtn.disabled = true;
+    speakBtn.title = "このブラウザは音声読み上げに対応していません";
+  }
+  const autoplayChk = el("chk-autoplay");
+  function speakWord(word, isAuto){
+    if(!speechSupported || !word) return;
+    if(isAuto && !autoplayChk.checked) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(word);
+    utter.lang = "en-US";
+    utter.rate = 0.92;
+    if(englishVoice) utter.voice = englishVoice;
+    speakBtn.classList.add("speaking");
+    utter.onend = () => speakBtn.classList.remove("speaking");
+    utter.onerror = () => speakBtn.classList.remove("speaking");
+    window.speechSynthesis.speak(utter);
+  }
+  speakBtn.addEventListener("click", () => speakWord(wordText.textContent));
+
+  // Promise-based Japanese speech, used by the hands-free autoplay loop so the
+  // pacing can wait for the meaning to actually finish being read out loud.
+  function speakJapaneseAsync(text){
+    return new Promise((resolve) => {
+      if(!speechSupported || !text){ resolve(); return; }
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "ja-JP";
+      utter.rate = 0.95;
+      if(japaneseVoice) utter.voice = japaneseVoice;
+      utter.onend = () => resolve();
+      utter.onerror = () => resolve();
+      window.speechSynthesis.speak(utter);
+    });
+  }
+
+  // --- Storage / migration ---
+  let deckRegistry = null; // { decks: [{id, name}], activeDeckId }
+
+  async function loadRegistry(){
+    deckRegistry = null;
+    try{
+      const res = await window.storage.get(DECK_REGISTRY_KEY, false);
+      if(res && res.value){
+        const parsed = JSON.parse(res.value);
+        if(parsed && Array.isArray(parsed.decks) && parsed.decks.length && parsed.activeDeckId){
+          deckRegistry = parsed;
+        }
+      }
+    }catch(e){ /* no registry yet */ }
+
+    if(!deckRegistry){
+      // First-ever load: check for pre-existing single-deck data to migrate in place.
+      let legacyData = null;
+      try{
+        const res = await window.storage.get(STORAGE_KEY, false);
+        if(res && res.value) legacyData = JSON.parse(res.value);
+      }catch(e){ /* none */ }
+
+      const firstId = genId();
+      deckRegistry = { decks: [{ id: firstId, name: "英検準1級" }], activeDeckId: firstId };
+      if(legacyData){
+        try{ await window.storage.set(deckStorageKey(firstId), JSON.stringify(legacyData), false); }catch(e){}
+      }
+      await saveRegistry();
+    }
+  }
+
+  async function saveRegistry(){
+    try{
+      await window.storage.set(DECK_REGISTRY_KEY, JSON.stringify(deckRegistry), false);
+    }catch(e){
+      console.error("registry save failed", e);
+    }
+  }
+
+  async function loadActiveDeckData(){
+    const key = deckStorageKey(deckRegistry.activeDeckId);
+    try{
+      const res = await window.storage.get(key, false);
+      if(res && res.value){
+        data = JSON.parse(res.value);
+      } else {
+        let migrated = null;
+        // Only attempt the old v2-format migration for the very first (original) deck.
+        if(deckRegistry.decks.length === 1 && deckRegistry.decks[0].id === deckRegistry.activeDeckId){
+          try{
+            const old = await window.storage.get(LEGACY_KEY_V2, false);
+            if(old && old.value){
+              const oldData = JSON.parse(old.value);
+              if(Array.isArray(oldData.cards) && oldData.cards.length){
+                migrated = {
+                  cards: oldData.cards.map(c => ({
+                    id: c.id, word: c.word, meaning: c.meaning,
+                    correctStreak: Math.min(DEFAULT_GRADUATE_STREAK - 1, c.level || 0),
+                    graduated: false,
+                    introduced: (c.reviewCount || 0) > 0,
+                    totalWrongCount: 0
+                  })),
+                  settings: { newPerDay: 100, maintBatchSize: 200, graduateStreak: DEFAULT_GRADUATE_STREAK, randomDefaultCount: 20, swampThreshold: 5 },
+                  schedule: null,
+                  history: []
+                };
+              }
+            }
+          }catch(e){ /* no v2 data */ }
+        }
+        data = migrated || JSON.parse(JSON.stringify(DEFAULT_DATA));
+        await saveData();
+      }
+    }catch(e){
+      data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      try{ await saveData(); }catch(e2){}
+    }
+    if(!data.settings) data.settings = { newPerDay: 100, maintBatchSize: 200, graduateStreak: DEFAULT_GRADUATE_STREAK, randomDefaultCount: 20, swampThreshold: 5 };
+    if(data.settings.newPerDay == null) data.settings.newPerDay = 100;
+    if(data.settings.maintBatchSize == null) data.settings.maintBatchSize = 200;
+    if(data.settings.graduateStreak == null) data.settings.graduateStreak = DEFAULT_GRADUATE_STREAK;
+    if(data.settings.randomDefaultCount == null) data.settings.randomDefaultCount = 20;
+    if(data.settings.swampThreshold == null) data.settings.swampThreshold = 5;
+    data.cards.forEach(c => { if(c.totalWrongCount == null) c.totalWrongCount = 0; });
+    if(!Array.isArray(data.history)) data.history = [];
+    await dedupeCards();
+    ensureSchedule();
+  }
+
+  async function loadData(){
+    await loadRegistry();
+    await loadActiveDeckData();
+    render();
+    renderDeckBar();
+  }
+
+  async function saveData(){
+    try{
+      const key = deckRegistry ? deckStorageKey(deckRegistry.activeDeckId) : STORAGE_KEY;
+      await window.storage.set(key, JSON.stringify(data), false);
+    }catch(e){
+      console.error("save failed", e);
+    }
+  }
+
+  function renderDeckBar(){
+    if(!deckRegistry) return;
+    deckBar.innerHTML = "";
+    deckRegistry.decks.forEach(d => {
+      const pill = document.createElement("button");
+      pill.type = "button";
+      pill.className = "deck-pill" + (d.id === deckRegistry.activeDeckId ? " active" : "");
+      pill.textContent = d.name;
+      pill.addEventListener("click", () => {
+        if(d.id !== deckRegistry.activeDeckId) switchDeck(d.id);
+      });
+      deckBar.appendChild(pill);
+    });
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "deck-pill deck-pill-add";
+    addBtn.textContent = "＋ 新しいセット";
+    addBtn.addEventListener("click", openDeckCreateModal);
+    deckBar.appendChild(addBtn);
+  }
+
+  async function switchDeck(deckId){
+    if(!deckRegistry || deckId === deckRegistry.activeDeckId) return;
+    await saveData(); // persist the deck we're leaving
+    const target = deckRegistry.decks.find(d => d.id === deckId);
+    deckRegistry.activeDeckId = deckId;
+    await saveRegistry();
+    await loadActiveDeckData();
+    switchTab("main");
+    renderDeckBar();
+    showToast(target ? `「${target.name}」に切り替えました` : "切り替えました");
+  }
+
+  async function createDeck(name, usePreset){
+    const trimmed = (name || "").trim();
+    if(!trimmed){ showToast("セット名を入力してください"); return; }
+    if(deckRegistry.decks.some(d => d.name === trimmed)){ showToast("同じ名前のセットが既にあります"); return; }
+    await saveData(); // persist the deck we're leaving
+    const id = genId();
+    deckRegistry.decks.push({ id, name: trimmed });
+    deckRegistry.activeDeckId = id;
+    await saveRegistry();
+    data = usePreset ? JSON.parse(JSON.stringify(DEFAULT_DATA)) : makeEmptyDeckData();
+    data.schedule = freshSchedule();
+    await saveData();
+    renderDeckBar();
+    switchTab(usePreset ? "main" : "add");
+    showToast(`「${trimmed}」を作成しました`);
+  }
+
+  // Generates up to `totalCount` unique {word, meaning} pairs matching
+  // `needsDescription`, via repeated Gemini API calls (each call is capped
+  // by output length, so large requests are split into batches and merged).
+  async function generateWordsWithAI(needsDescription, totalCount, onProgress, onError){
+    if(typeof fetch === "undefined"){
+      if(onError) onError("この環境ではAI機能(fetch)が使えません。");
+      return [];
+    }
+    const BATCH_SIZE = 40;
+    const MAX_ATTEMPTS = Math.ceil(totalCount / BATCH_SIZE) + 4;
+    const results = [];
+    const usedKeys = new Set();
+    let attempts = 0;
+    let lastError = null;
+
+    while(results.length < totalCount && attempts < MAX_ATTEMPTS){
+      attempts++;
+      const need = Math.min(BATCH_SIZE, totalCount - results.length);
+      const avoidList = Array.from(usedKeys).slice(-150).join(", ");
+      const prompt =
+        `あなたは英語学習教材の作成者です。次の条件に合う英単語を、日本語の意味とセットで${need}個作成してください。\n\n` +
+        `条件: ${needsDescription}\n\n` +
+        (avoidList ? `すでに使った単語です。これらとは重複させないでください: ${avoidList}\n\n` : "") +
+        `出力は必ず次のJSON配列の形式だけを出力してください。前置き、説明文、コードブロックの記号(バッククォート3つ)は一切つけないでください。\n` +
+        `[{"word":"英単語","meaning":"日本語の意味"}]`;
+
+      try{
+        const apiKey = window.__GEMINI_API_KEY__;
+        if(!apiKey){
+          lastError = "Google Gemini APIキーが設定されていません。「＋追加・設定」タブの一番下からキーを設定してください。";
+          console.error(lastError);
+          break;
+        }
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { maxOutputTokens: 2000 }
+            })
+          }
+        );
+        if(!response.ok){
+          let bodyText = "";
+          try{ bodyText = await response.text(); }catch(e2){}
+          lastError = `APIエラー(HTTP ${response.status})：${bodyText.slice(0, 200)}`;
+          console.error(lastError);
+          break;
+        }
+        const data = await response.json();
+        if(data && data.error){
+          lastError = `APIエラー：${data.error.message || JSON.stringify(data.error)}`;
+          console.error(lastError, data);
+          break;
+        }
+        const candidate = (data.candidates || [])[0];
+        const text = ((candidate && candidate.content && candidate.content.parts) || [])
+          .map(p => p.text || "")
+          .join("");
+        const cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+        let parsed;
+        try{
+          parsed = JSON.parse(cleaned);
+        }catch(parseErr){
+          lastError = `AIの応答をJSONとして読み取れませんでした：${cleaned.slice(0, 150)}`;
+          console.error(lastError, parseErr);
+          break;
+        }
+        let addedThisRound = 0;
+        if(Array.isArray(parsed)){
+          for(const item of parsed){
+            if(item && typeof item.word === "string" && typeof item.meaning === "string"){
+              const key = item.word.trim().toLowerCase();
+              if(key && !usedKeys.has(key)){
+                usedKeys.add(key);
+                results.push({ word: item.word.trim(), meaning: item.meaning.trim() });
+                addedThisRound++;
+              }
+            }
+          }
+        } else {
+          lastError = "AIの応答が単語リストの形式ではありませんでした。";
+        }
+        if(onProgress) onProgress(results.length, totalCount);
+        if(addedThisRound === 0) break; // AI stopped producing anything new; avoid spinning forever
+      }catch(e){
+        lastError = `通信エラー：${e && e.message ? e.message : String(e)}`;
+        console.error("AI word generation failed", e);
+        break;
+      }
+    }
+    if(results.length === 0 && lastError && onError) onError(lastError);
+    return results;
+  }
+
+  async function createDeckWithAI(name, needsDescription, count){
+    const trimmed = (name || "").trim();
+    if(!trimmed){ showToast("セット名を入力してください"); return; }
+    if(deckRegistry.decks.some(d => d.name === trimmed)){ showToast("同じ名前のセットが既にあります"); return; }
+    const needs = (needsDescription || "").trim();
+    if(!needs){ showToast("どんな単語が欲しいか入力してください"); return; }
+    const countRaw = (count || "").toString().trim();
+    const n = countRaw === "" ? 50 : parseInt(countRaw, 10);
+    if(!Number.isFinite(n) || n <= 0){ showToast("語数は1以上の数字で入力してください"); return; }
+
+    const btn = el("btn-deck-create-ai");
+    const progressEl = el("ai-progress");
+    btn.disabled = true;
+    progressEl.style.color = "";
+    progressEl.textContent = "AIが単語を考えています…";
+
+    let words = [];
+    try{
+      words = await generateWordsWithAI(
+        needs, n,
+        (done, total) => { progressEl.textContent = `生成中… ${done}/${total}語`; },
+        (errMsg) => { progressEl.style.color = "#C94A3C"; progressEl.textContent = errMsg; }
+      );
+    }catch(e){
+      console.error("createDeckWithAI unexpected error", e);
+      progressEl.style.color = "#C94A3C";
+      progressEl.textContent = `予期しないエラー：${e && e.message ? e.message : String(e)}`;
+    }
+
+    btn.disabled = false;
+
+    if(words.length === 0){
+      if(!progressEl.textContent){
+        progressEl.style.color = "#C94A3C";
+        progressEl.textContent = "単語の生成に失敗しました。もう一度お試しください。";
+      }
+      showToast("単語の生成に失敗しました");
+      return;
+    }
+
+    progressEl.style.color = "";
+    progressEl.textContent = "";
+    await saveData(); // persist the deck we're leaving
+    const id = genId();
+    deckRegistry.decks.push({ id, name: trimmed });
+    deckRegistry.activeDeckId = id;
+    await saveRegistry();
+    data = makeEmptyDeckData();
+    data.cards = words.map(w => makeCard(w.word, w.meaning));
+    data.schedule = freshSchedule();
+    await saveData();
+    renderDeckBar();
+    closeDeckCreateModal();
+    switchTab("main");
+    const shortfall = words.length < n ? `(目標${n}語のうち${words.length}語作成しました)` : "";
+    showToast(`「${trimmed}」をAIで作成しました ${shortfall}`.trim());
+  }
+
+  async function deleteActiveDeck(){
+    if(!deckRegistry || deckRegistry.decks.length <= 1){
+      showToast("最後の1つのセットは削除できません");
+      return;
+    }
+    const current = deckRegistry.decks.find(d => d.id === deckRegistry.activeDeckId);
+    if(!(await customConfirm(`「${current.name}」を完全に削除します。この操作は取り消せません。よろしいですか？`))) return;
+    deckRegistry.decks = deckRegistry.decks.filter(d => d.id !== current.id);
+    deckRegistry.activeDeckId = deckRegistry.decks[0].id;
+    await saveRegistry();
+    await loadActiveDeckData();
+    switchTab("main");
+    renderDeckBar();
+    showToast(`「${current.name}」を削除しました`);
+  }
+
+  function openDeckCreateModal(){
+    el("in-deck-name").value = "";
+    deckCreateOverlay.classList.remove("hidden");
+  }
+  function closeDeckCreateModal(){
+    deckCreateOverlay.classList.add("hidden");
+  }
+
+  async function dedupeCards(){
+    if(!data || !Array.isArray(data.cards)) return;
+    const seen = new Map();
+    let removedAny = false;
+    const kept = [];
+    for(const c of data.cards){
+      const key = (c.word || "").trim().toLowerCase();
+      if(!key) continue;
+      const existing = seen.get(key);
+      if(!existing){
+        seen.set(key, c);
+        kept.push(c);
+      } else {
+        removedAny = true;
+        if((c.correctStreak || 0) > (existing.correctStreak || 0)){
+          const idx = kept.indexOf(existing);
+          if(idx !== -1) kept[idx] = c;
+          seen.set(key, c);
+        }
+      }
+    }
+    if(removedAny){
+      data.cards = kept;
+      await saveData();
+    }
+  }
+
+  // --- Schedule engine ---
+  function computeStageIds(){
+    const sch = data.schedule;
+    const cardsById = new Map(data.cards.map(c => [c.id, c]));
+    if(sch.phase === "learning"){
+      if(sch.cycleDay <= 5){
+        const newPool = data.cards.filter(c => !c.introduced && !c.graduated);
+        const freshCount = Math.min(data.settings.newPerDay, newPool.length);
+        const freshIds = newPool.slice(0, freshCount).map(c => c.id);
+        const carriedWrong = sch.wrongIds.filter(id => {
+          const c = cardsById.get(id);
+          return c && !c.graduated;
+        });
+        return [...freshIds, ...carriedWrong];
+      }
+      if(sch.cycleDay === 6){
+        return sch.batchIds.filter(id => {
+          const c = cardsById.get(id);
+          return c && !c.graduated;
+        });
+      }
+      // cycleDay === 7
+      return sch.wrongIds.filter(id => {
+        const c = cardsById.get(id);
+        return c && !c.graduated;
+      });
+    } else {
+      const pool = data.cards.filter(c => !c.graduated);
+      const notIntroduced = pool.filter(c => !c.introduced);
+      const alreadyIntroduced = pool.filter(c => c.introduced);
+      // Small additions made during maintenance don't trigger a full return to the
+      // learning cycle (see checkPhaseTransition); instead, give them priority slots
+      // in the very next maintenance batch so they don't wait on the rotation cursor.
+      const priorityTake = Math.min(notIntroduced.length, data.settings.maintBatchSize);
+      const priorityIds = notIntroduced.slice(0, priorityTake).map(c => c.id);
+      const remainingSlots = Math.max(0, data.settings.maintBatchSize - priorityIds.length);
+      const circularCards = takeCircular(alreadyIntroduced, sch.maintCursor, remainingSlots);
+      sch.maintCircularCount = circularCards.length;
+      const freshIds = [...priorityIds, ...circularCards.map(c => c.id)];
+      const carriedWrong = sch.wrongIds.filter(id => pool.some(c => c.id === id));
+      return Array.from(new Set([...freshIds, ...carriedWrong]));
+    }
+  }
+
+  function checkPhaseTransition(){
+    const sch = data.schedule;
+    const newPool = data.cards.filter(c => !c.introduced && !c.graduated);
+    if(sch.phase === "learning"){
+      // Require batchIds to be empty too: otherwise a small tail-end batch that
+      // gets answered perfectly (zero wrongIds) before reaching cycleDay 6 could
+      // jump straight to maintenance and skip its total-review checkpoint entirely.
+      if(newPool.length === 0 && sch.wrongIds.length === 0 && sch.batchIds.length === 0){
+        sch.phase = "maintenance";
+        sch.maintCursor = 0;
+        sch.wrongIds = [];
+      }
+    } else if(sch.phase === "maintenance"){
+      // Words added later (via +追加) should be treated as a proper new-word
+      // batch again — but only if the batch is big enough to be worth the full
+      // 7-day cycle. Smaller additions are folded straight into the next
+      // maintenance round instead (see computeStageIds' priority slots).
+      if(newPool.length >= data.settings.newPerDay){
+        sch.phase = "learning";
+        sch.cycleDay = 1;
+        sch.batchIds = [];
+        sch.wrongIds = [];
+      }
+    }
+  }
+
+  function advanceScheduleInMemory(){
+    const sch = data.schedule;
+    const cardsById = new Map(data.cards.map(c => [c.id, c]));
+    // Anything in the current stage that was never actually answered this round
+    // (e.g. hidden by the 新規のみ/復習のみ display filter) must not be lost —
+    // carry it forward instead of silently dropping it.
+    const unanswered = (sch.currentStageIds || []).filter(id => !sch.answeredIds.includes(id));
+    const unansweredCarryType = unanswered.filter(id => {
+      const c = cardsById.get(id);
+      return c && c.introduced; // "review-type" leftovers get carried as wrongIds; unanswered "new-type" ones stay in the new pool naturally since introduced is still false
+    });
+
+    if(sch.phase === "learning"){
+      if(sch.cycleDay <= 5){
+        sch.batchIds = Array.from(new Set([...sch.batchIds, ...sch.sessionNewIds]));
+        sch.wrongIds = Array.from(new Set([...unansweredCarryType, ...sch.sessionWrongIds]));
+        sch.cycleDay = sch.cycleDay + 1;
+      } else if(sch.cycleDay === 6){
+        sch.wrongIds = Array.from(new Set([...unansweredCarryType, ...sch.sessionWrongIds]));
+        sch.batchIds = [];
+        sch.cycleDay = 7;
+      } else {
+        sch.wrongIds = Array.from(new Set([...unansweredCarryType, ...sch.sessionWrongIds]));
+        sch.cycleDay = 1;
+      }
+    } else {
+      sch.wrongIds = Array.from(new Set([...unansweredCarryType, ...sch.sessionWrongIds]));
+      sch.maintCursor += (sch.maintCircularCount || 0);
+    }
+    sch.sessionWrongIds = [];
+    sch.sessionNewIds = [];
+    checkPhaseTransition();
+    sch.currentStageIds = computeStageIds();
+    sch.answeredIds = [];
+  }
+
+  function ensureSchedule(){
+    if(!data.schedule){
+      data.schedule = freshSchedule();
+    }
+    if(data.schedule.maintCircularCount == null) data.schedule.maintCircularCount = 0;
+    if(data.schedule.currentStageIds == null){
+      checkPhaseTransition();
+      data.schedule.currentStageIds = computeStageIds();
+      data.schedule.answeredIds = [];
+    }
+    // Auto-skip stages that were freshly computed as empty (nothing planned at all),
+    // so the person is never blocked on a pointless checkpoint with zero cards.
+    let guard = 0;
+    while(
+      data.schedule.currentStageIds.length === 0 &&
+      guard < 30 &&
+      data.cards.some(c => !c.graduated)
+    ){
+      advanceScheduleInMemory();
+      guard++;
+    }
+  }
+
+  // 'all' | 'new' | 'review' — a display-only filter for the main tab. Only
+  // meaningful during mixed stages (learning day 1-5, or maintenance); it
+  // never touches currentStageIds/answeredIds bookkeeping, so anything left
+  // unanswered because it's filtered out is safely carried forward by
+  // advanceScheduleInMemory() above instead of being lost.
+  let mainViewFilter = "all";
+  function mainFilterAllowed(){
+    const sch = data.schedule;
+    if(!sch) return false;
+    return sch.phase === "maintenance" || (sch.phase === "learning" && sch.cycleDay <= 5);
+  }
+
+  function getTodaysDeck(){
+    ensureSchedule();
+    const sch = data.schedule;
+    const cardsById = new Map(data.cards.map(c => [c.id, c]));
+    let ids = sch.currentStageIds.filter(id => !sch.answeredIds.includes(id));
+    if(mainViewFilter !== "all" && mainFilterAllowed()){
+      ids = ids.filter(id => {
+        const c = cardsById.get(id);
+        if(!c) return false;
+        const isNew = !c.introduced;
+        return mainViewFilter === "new" ? isNew : !isNew;
+      });
+    }
+    return ids
+      .map(id => cardsById.get(id))
+      .filter(c => c && !c.graduated);
+  }
+
+  function stageInfo(){
+    const sch = data.schedule;
+    if(sch.phase === "learning"){
+      if(sch.cycleDay <= 5){
+        const cardsById = new Map(data.cards.map(c => [c.id, c]));
+        const hasActualNew = (sch.currentStageIds || []).some(id => {
+          const c = cardsById.get(id);
+          return c && !c.introduced;
+        });
+        if(!hasActualNew){
+          return { kind: "makeup", label: "🔁 前回わからなかった語のやり直し中（新規語はありません）", css: "makeup" };
+        }
+        return { kind: "new", label: `🆕 新規学習（サイクル内 ${sch.cycleDay}/5日目）`, css: "" };
+      }
+      if(sch.cycleDay === 6) return { kind: "total", label: "📋 5日分の総復習（Day6）", css: "total" };
+      return { kind: "makeup", label: "🔁 総復習でわからなかった語のやり直し（Day7）", css: "makeup" };
+    }
+    return { kind: "maint", label: "🔁 復習ローテーション（前回のわからない＋新しいバッチ）", css: "maint" };
+  }
+
+  function currentDeck(){
+    return getTodaysDeck();
+  }
+
+  function randomDeck(){
+    return randomQueue.slice(randomIndex).map(id => data.cards.find(c => c.id === id)).filter(Boolean);
+  }
+
+  function render(){
+    renderStats();
+    renderCard();
+  }
+
+  function renderStats(){
+    const total = data.cards.length;
+    const graduated = data.cards.filter(c => c.graduated).length;
+    if(!total){ statsLine.textContent = ""; phaseBanner.textContent = ""; return; }
+    const sch = data.schedule;
+    statsLine.textContent = `卒業(完全マスター) ${graduated}/${total}語`;
+    phaseBanner.textContent = currentTab === "random"
+      ? ""
+      : (sch.phase === "learning"
+        ? `📘 新規学習フェーズ・7日サイクルの ${sch.cycleDay}日目`
+        : `🔁 復習フェーズ（新規語は学習し終えました）`);
+  }
+
+  function setFocusMode(on){
+    focusMode = on;
+    document.documentElement.classList.toggle("focus-bg", on);
+    document.body.classList.toggle("focus-bg", on);
+    headerCollapsible.classList.toggle("hidden", on);
+    appTitle.classList.toggle("hidden", on);
+    phaseBanner.classList.toggle("hidden", on);
+    statsLine.classList.toggle("hidden", on);
+    kbdHint.classList.toggle("hidden", on);
+    if(on){
+      stageBadge.classList.add("hidden");
+      swampBadge.classList.add("hidden");
+      deleteForeverBtn.classList.add("hidden");
+      randomControls.classList.add("hidden");
+      mainFilterToggle.classList.add("hidden");
+    }
+    updateFocusButtons();
+    if(currentTab !== "random") renderCard(); else renderRandomCard();
+  }
+  function updateFocusButtons(){
+    const onMain = currentTab === "main";
+    const onRandom = currentTab === "random";
+    btnFocusStart.classList.toggle("hidden", !onMain || focusMode);
+    btnFocusExit.classList.toggle("hidden", !(onMain || onRandom) || !focusMode);
+  }
+
+  function renderCard(){
+    randomControls.classList.toggle("hidden", currentTab !== "random" || focusMode);
+    if(currentTab === "random"){
+      mainFilterToggle.classList.add("hidden");
+      updateFocusButtons();
+      renderRandomCard();
+      return;
+    }
+    mainFilterToggle.classList.toggle("hidden", !mainFilterAllowed() || focusMode);
+    updateFocusButtons();
+
+    const deck = currentDeck();
+    phase = "guess";
+    pendingKnown = null;
+    film.classList.remove("revealed");
+    choiceButtons.classList.remove("hidden");
+    nextButtons.classList.add("hidden");
+    card.classList.remove("jaen-mode");
+    deleteForeverBtn.classList.add("hidden");
+    advanceBtn.classList.add("hidden");
+    stageBadge.classList.add("hidden");
+    swampBadge.classList.add("hidden");
+
+    const allGraduated = data.cards.length > 0 && data.cards.every(c => c.graduated);
+
+    if(deck.length === 0){
+      card.classList.add("hidden");
+      choiceButtons.classList.add("hidden");
+      nextButtons.classList.add("hidden");
+      deleteForeverBtn.classList.add("hidden");
+      progress.textContent = "";
+
+      emptyState.classList.remove("hidden");
+      if(data.cards.length === 0){
+        emptyState.innerHTML = "<span class='big'>📇</span>まだ単語が登録されていません。<br>「＋追加・設定」タブから、最初の単語を追加してください。";
+        advanceBtn.classList.add("hidden");
+      } else if(allGraduated){
+        emptyState.innerHTML = "<span class='big'>🏆</span>すべての単語を完全にマスターしました！<br>「＋追加」から新しい単語を足せば、また学習を再開できます。";
+        advanceBtn.classList.add("hidden");
+      } else {
+        const info = stageInfo();
+        const doneCount = data.schedule.answeredIds.length;
+        emptyState.innerHTML = `<span class='big'>🏁</span>${info.label} が終わりました！<br>今回は${doneCount}語やりました。お疲れさまでした。`;
+        advanceBtn.classList.remove("hidden");
+        advanceBtn.textContent = "次のステージに進む →";
+      }
+      return;
+    }
+
+    emptyState.classList.add("hidden");
+    card.classList.remove("hidden");
+    const item = deck[0];
+    wordText.textContent = item.word;
+    meaningText.textContent = item.meaning;
+    swampBadge.classList.toggle("hidden", !isSwamp(item));
+
+    const info = stageInfo();
+    stageBadge.textContent = info.label;
+    stageBadge.className = "stage-badge " + info.css;
+    stageBadge.classList.remove("hidden");
+    if(focusMode){
+      stageBadge.classList.add("hidden");
+      swampBadge.classList.add("hidden");
+    }
+
+    progress.textContent = `残り ${deck.length} 語（このステージ）`;
+    speakWord(item.word, true);
+  }
+
+  function renderRandomCard(){
+    phase = "guess";
+    pendingKnown = null;
+    film.classList.remove("revealed");
+    choiceButtons.classList.remove("hidden");
+    nextButtons.classList.add("hidden");
+    deleteForeverBtn.classList.add("hidden");
+    advanceBtn.classList.add("hidden");
+    stageBadge.classList.add("hidden");
+    swampBadge.classList.add("hidden");
+    card.classList.toggle("jaen-mode", randomDirection === "ja-en");
+
+    const deck = randomDeck();
+    if(deck.length === 0){
+      card.classList.add("hidden");
+      choiceButtons.classList.add("hidden");
+      progress.textContent = "";
+      emptyState.classList.remove("hidden");
+      if(randomQueue.length === 0){
+        emptyState.innerHTML = "<span class='big'>🎲</span>範囲と出題数を決めて「🎯 集中スタート」を押してください。<br>「全部」は卒業済みも含む全単語、「苦手だけ」はまだ卒業していない単語のみが対象です。";
+      } else {
+        const modeLabel = randomMode === "weak" ? "苦手だけ" : "全部";
+        emptyState.innerHTML = `<span class='big'>🎉</span>（${modeLabel}から）${randomQueue.length}語、終わりました！<br>もう一度「🎯 集中スタート」を押せば再挑戦できます。`;
+      }
+      return;
+    }
+    emptyState.classList.add("hidden");
+    card.classList.remove("hidden");
+    const item = deck[0];
+    swampBadge.classList.toggle("hidden", !isSwamp(item) || focusMode);
+    if(randomDirection === "ja-en"){
+      wordText.textContent = item.meaning;
+      meaningText.textContent = item.word;
+    } else {
+      wordText.textContent = item.word;
+      meaningText.textContent = item.meaning;
+    }
+    const modeLabel = randomMode === "weak" ? "苦手だけ" : (randomMode === "swamp" ? "🔥沼単語だけ" : (randomMode === "todaynew" ? "🆕今日の新規" : "全部"));
+    const dirLabel = randomDirection === "ja-en" ? "🔥 日本語→英語（スピーキングテスト）" : "英語→日本語";
+    progress.textContent = focusMode
+      ? `残り ${deck.length} 語（このステージ）`
+      : `残り ${deck.length} / ${randomQueue.length} 語（${modeLabel}・${dirLabel}・記録には影響しません）`;
+    if(randomDirection === "en-ja"){
+      speakWord(item.word, true);
+    }
+  }
+
+  function logHistoryToday(){
+    const today = todayStr();
+    const graduated = data.cards.filter(c => c.graduated).length;
+    const total = data.cards.length;
+    const studied = (data.todayStudyDate === today) ? (data.todayStudyCount || 0) : 0;
+    const last = data.history[data.history.length - 1];
+    if(last && last.date === today){
+      last.graduated = graduated;
+      last.total = total;
+      last.studied = studied;
+    } else {
+      data.history.push({ date: today, graduated, total, studied });
+    }
+    // keep it from growing forever
+    if(data.history.length > 120) data.history = data.history.slice(-120);
+  }
+
+  let listFilter = "all"; // 'all' | 'new' | 'learning' | 'graduated' | 'swamp'
+  const LIST_PAGE_SIZE = 300;
+  let listRenderLimit = LIST_PAGE_SIZE;
+
+  function cardStatus(card){
+    if(card.graduated) return "graduated";
+    if(isSwamp(card)) return "swamp";
+    if(card.introduced) return "learning";
+    return "new";
+  }
+  function statusIcon(status){
+    return { new: "🆕", learning: "📘", graduated: "🏆", swamp: "🔥" }[status] || "";
+  }
+
+  function renderWordList(){
+    const query = inListSearch.value.trim().toLowerCase();
+    let filtered = data.cards.filter(c => {
+      if(listFilter !== "all"){
+        const st = cardStatus(c);
+        if(listFilter === "swamp"){ if(!isSwamp(c)) return false; }
+        else if(st !== listFilter) return false;
+      }
+      if(query){
+        const w = c.word.toLowerCase();
+        const m = c.meaning.toLowerCase();
+        if(!w.includes(query) && !m.includes(query)) return false;
+      }
+      return true;
+    });
+
+    listSummary.textContent = `${filtered.length}語 / 全${data.cards.length}語`;
+
+    const capped = filtered.slice(0, listRenderLimit);
+    wordListContainer.innerHTML = "";
+
+    if(data.cards.length === 0){
+      const empty = document.createElement("div");
+      empty.className = "list-empty";
+      empty.textContent = "このセットにはまだ単語がありません。「＋追加・設定」タブから追加してください。";
+      wordListContainer.appendChild(empty);
+      return;
+    }
+    if(filtered.length === 0){
+      const empty = document.createElement("div");
+      empty.className = "list-empty";
+      empty.textContent = "条件に合う単語がありません。";
+      wordListContainer.appendChild(empty);
+      return;
+    }
+
+    capped.forEach(c => {
+      const row = document.createElement("div");
+      row.className = "word-row-item";
+
+      const status = document.createElement("span");
+      status.className = "wri-status";
+      status.textContent = statusIcon(cardStatus(c));
+      status.title = { new: "未着手", learning: "学習中", graduated: "卒業済み", swamp: "沼単語" }[cardStatus(c)] || "";
+
+      const text = document.createElement("div");
+      text.className = "wri-text";
+      const en = document.createElement("div");
+      en.className = "wri-en";
+      en.textContent = c.word;
+      const ja = document.createElement("div");
+      ja.className = "wri-ja";
+      ja.textContent = c.meaning;
+      text.appendChild(en);
+      text.appendChild(ja);
+
+      const meta = document.createElement("div");
+      meta.className = "wri-meta";
+      meta.textContent = (c.totalWrongCount || 0) > 0 ? `わからない${c.totalWrongCount}回` : "";
+
+      const del = document.createElement("button");
+      del.className = "wri-delete";
+      del.textContent = "🗑";
+      del.title = "この単語を完全に削除する";
+      del.addEventListener("click", async () => {
+        if(!(await customConfirm(`「${c.word}」を完全に削除します。よろしいですか？`))) return;
+        data.cards = data.cards.filter(x => x.id !== c.id);
+        await saveData();
+        renderWordList();
+        showToast(`「${c.word}」を削除しました`);
+      });
+
+      row.appendChild(status);
+      row.appendChild(text);
+      row.appendChild(meta);
+      row.appendChild(del);
+      wordListContainer.appendChild(row);
+    });
+
+    if(filtered.length > listRenderLimit){
+      const remaining = filtered.length - listRenderLimit;
+      const loadMore = document.createElement("button");
+      loadMore.className = "btn btn-outline";
+      loadMore.style.width = "100%";
+      loadMore.style.marginTop = "10px";
+      loadMore.textContent = `🔽 もっと見る（あと${remaining}語）`;
+      loadMore.addEventListener("click", () => {
+        listRenderLimit += LIST_PAGE_SIZE;
+        renderWordList();
+      });
+      wordListContainer.appendChild(loadMore);
+
+      const notice = document.createElement("div");
+      notice.className = "hint";
+      notice.style.textAlign = "center";
+      notice.style.marginTop = "6px";
+      notice.textContent = `${capped.length}/${filtered.length}語を表示中`;
+      wordListContainer.appendChild(notice);
+    }
+  }
+
+  function heatmapLevel(count){
+    if(!count || count <= 0) return 0;
+    if(count <= 20) return 1;
+    if(count <= 60) return 2;
+    if(count <= 120) return 3;
+    return 4;
+  }
+
+  function renderHeatmap(){
+    const byDate = new Map(data.history.map(h => [h.date, h.studied || 0]));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days = 91; // ~13 weeks
+    const start = new Date(today);
+    start.setDate(start.getDate() - (days - 1));
+    // Align the grid so the first column starts on a Sunday.
+    const startDow = start.getDay(); // 0 = Sunday
+    start.setDate(start.getDate() - startDow);
+
+    heatmapGrid.innerHTML = "";
+    const totalCells = days + startDow + (6 - today.getDay());
+    for(let i = 0; i < totalCells; i++){
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      const dateStr = formatLocalDate(d);
+      const cell = document.createElement("div");
+      cell.className = "heatmap-cell";
+      if(d > today){
+        cell.style.visibility = "hidden";
+      } else {
+        const count = byDate.get(dateStr) || 0;
+        cell.dataset.level = String(heatmapLevel(count));
+        cell.title = `${dateStr}：${count}語`;
+      }
+      heatmapGrid.appendChild(cell);
+    }
+  }
+
+  function renderGrowth(){
+    // Quote of the day
+    const q = todaysQuote();
+    quoteEn.textContent = q.en;
+    quoteJa.textContent = q.ja;
+    quoteAuthor.textContent = `— ${q.author}`;
+
+    // Progress breakdown
+    const total = data.cards.length;
+    const graduated = data.cards.filter(c => c.graduated).length;
+    const introducedNotGraduated = data.cards.filter(c => c.introduced && !c.graduated).length;
+    const untouched = total - graduated - introducedNotGraduated;
+    const pct = (n) => total ? Math.round((n / total) * 1000) / 10 : 0;
+
+    growthBar.innerHTML = "";
+    if(total > 0){
+      const segGrad = document.createElement("div");
+      segGrad.className = "seg-graduated";
+      segGrad.style.width = pct(graduated) + "%";
+      const segProg = document.createElement("div");
+      segProg.className = "seg-progress";
+      segProg.style.width = pct(introducedNotGraduated) + "%";
+      const segUn = document.createElement("div");
+      segUn.className = "seg-untouched";
+      segUn.style.width = pct(untouched) + "%";
+      growthBar.appendChild(segGrad);
+      growthBar.appendChild(segProg);
+      growthBar.appendChild(segUn);
+    }
+
+    growthLegend.innerHTML = `
+      <span><span class="legend-dot" style="background:var(--ink-green)"></span>卒業済み ${graduated}語（${pct(graduated)}%）</span>
+      <span><span class="legend-dot" style="background:#E8A33D"></span>学習中 ${introducedNotGraduated}語（${pct(introducedNotGraduated)}%）</span>
+      <span><span class="legend-dot" style="background:#D8D2BE"></span>未着手 ${untouched}語（${pct(untouched)}%）</span>
+    `;
+
+    const sch = data.schedule || {};
+    const phaseLabel = sch.phase === "learning"
+      ? `新規学習フェーズ（7日サイクルの${sch.cycleDay}日目）`
+      : "復習フェーズ";
+    const todaySessionCount = (sch.answeredIds || []).length;
+    growthNumbers.innerHTML = `
+      登録単語数：<b>${total}語</b><br>
+      現在のフェーズ：<b>${phaseLabel}</b><br>
+      今のステージでここまで答えた数：<b>${todaySessionCount}語</b>
+    `;
+
+    // History log
+    logHistoryToday();
+    renderHeatmap();
+    const rows = data.history.slice(-14).slice().reverse();
+    growthHistory.innerHTML = rows.map((row, i) => {
+      const prev = data.history[data.history.length - 1 - i - 1];
+      const delta = prev ? row.graduated - prev.graduated : row.graduated;
+      const deltaLabel = delta > 0 ? `+${delta}語` : (delta === 0 ? "±0" : `${delta}語`);
+      return `<div class="history-row"><span class="history-date">${row.date}</span><span>卒業 ${row.graduated}語 <span class="history-delta">${deltaLabel}</span></span></div>`;
+    }).join("") || "<div class='hint'>まだ記録がありません。</div>";
+
+    saveData();
+  }
+
+  btnSpeakQuote.addEventListener("click", () => {
+    const q = todaysQuote();
+    if(!speechSupported) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(q.en);
+    utter.lang = "en-US";
+    utter.rate = 0.92;
+    if(englishVoice) utter.voice = englishVoice;
+    btnSpeakQuote.classList.add("speaking");
+    utter.onend = () => btnSpeakQuote.classList.remove("speaking");
+    utter.onerror = () => btnSpeakQuote.classList.remove("speaking");
+    window.speechSynthesis.speak(utter);
+  });
+
+  function choose(known){
+    phase = "revealed";
+    pendingKnown = known;
+    film.classList.add("revealed");
+    choiceButtons.classList.add("hidden");
+    nextButtons.classList.remove("hidden");
+    deleteForeverBtn.classList.toggle("hidden", !known);
+    if(currentTab === "random" && randomDirection === "ja-en"){
+      speakWord(meaningText.textContent, true);
+    }
+  }
+
+  async function nextCard(){
+    if(currentTab === "random"){
+      randomIndex += 1;
+      render();
+      return;
+    }
+    const deck = currentDeck();
+    if(deck.length === 0) return;
+    const item = deck[0];
+    const cardData = data.cards.find(c => c.id === item.id);
+    const sch = data.schedule;
+    if(cardData){
+      const wasNew = !cardData.introduced;
+      cardData.introduced = true;
+      if(pendingKnown){
+        cardData.correctStreak = (cardData.correctStreak || 0) + 1;
+        if(cardData.correctStreak >= (data.settings.graduateStreak || DEFAULT_GRADUATE_STREAK)){
+          cardData.graduated = true;
+        }
+      } else {
+        cardData.correctStreak = 0;
+        cardData.totalWrongCount = (cardData.totalWrongCount || 0) + 1;
+        if(!sch.sessionWrongIds.includes(cardData.id)) sch.sessionWrongIds.push(cardData.id);
+      }
+      if(wasNew){
+        if(!sch.sessionNewIds.includes(cardData.id)) sch.sessionNewIds.push(cardData.id);
+      }
+      if(!sch.answeredIds.includes(cardData.id)) sch.answeredIds.push(cardData.id);
+
+      const today = todayStr();
+      if(data.todayStudyDate !== today){
+        data.todayStudyDate = today;
+        data.todayStudyCount = 0;
+      }
+      data.todayStudyCount = (data.todayStudyCount || 0) + 1;
+
+      // Separate from sessionNewIds (which resets on every stage advance): this
+      // tracks "new words answered today" by actual calendar date, so it stays
+      // intact even after clicking "次のステージに進む" within the same day.
+      if(wasNew){
+        if(data.todayNewDate !== today){
+          data.todayNewDate = today;
+          data.todayNewWordIds = [];
+        }
+        if(!data.todayNewWordIds.includes(cardData.id)) data.todayNewWordIds.push(cardData.id);
+      }
+    }
+    render();
+    await saveData();
+  }
+
+  async function deleteCardForever(){
+    if(currentTab === "random"){
+      const deck = randomDeck();
+      if(deck.length === 0) return;
+      const item = deck[0];
+      data.cards = data.cards.filter(c => c.id !== item.id);
+      randomQueue = randomQueue.filter(id => id !== item.id);
+      showToast(`「${item.word}」を完全に削除しました`);
+      render();
+      await saveData();
+      return;
+    }
+    const deck = currentDeck();
+    if(deck.length === 0) return;
+    const item = deck[0];
+    data.cards = data.cards.filter(c => c.id !== item.id);
+    if(!data.schedule.answeredIds.includes(item.id)) data.schedule.answeredIds.push(item.id);
+    showToast(`「${item.word}」を完全に削除しました`);
+    render();
+    await saveData();
+  }
+
+  let autoplayToken = 0;
+  function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  async function autoplayStep(myToken){
+    if(myToken !== autoplayToken || !chkRandomAutoplay.checked) return;
+    if(currentTab !== "random") return;
+    if(randomDirection !== "en-ja") return;
+    const deck = randomDeck();
+    if(deck.length === 0){
+      chkRandomAutoplay.checked = false;
+      return;
+    }
+    // Card for this step is already rendered + spoken (by renderRandomCard,
+    // triggered from the previous nextCard()/startRandomSession() call).
+    await sleep(1500);
+    if(myToken !== autoplayToken || !chkRandomAutoplay.checked) return;
+    choose(true); // reveal the meaning (no scoring effect in the random tab)
+    await speakJapaneseAsync(meaningText.textContent); // read the meaning aloud, wait for it to finish
+    if(myToken !== autoplayToken || !chkRandomAutoplay.checked) return;
+    await sleep(700);
+    if(myToken !== autoplayToken || !chkRandomAutoplay.checked) return;
+    await nextCard(); // advances, re-renders, and speaks the next word
+    await sleep(50);
+    autoplayStep(myToken);
+  }
+
+  chkRandomAutoplay.addEventListener("change", () => {
+    if(chkRandomAutoplay.checked){
+      if(randomDirection !== "en-ja"){
+        showToast("自動再生は「英語→日本語」モードのみ対応しています");
+        chkRandomAutoplay.checked = false;
+        return;
+      }
+      if(randomDeck().length > 0){
+        autoplayToken++;
+        autoplayStep(autoplayToken);
+      }
+    } else {
+      autoplayToken++; // stop any running loop
+    }
+  });
+
+  function startRandomSession(){
+    const raw = inRandomCount.value.trim();
+    let n = data.settings.randomDefaultCount || 20;
+    if(raw !== ""){
+      const parsed = parseInt(raw, 10);
+      if(Number.isFinite(parsed) && parsed > 0) n = parsed;
+    }
+    let basePool;
+    let emptyMsg;
+    if(randomMode === "weak"){
+      basePool = data.cards.filter(c => !c.graduated);
+      emptyMsg = "苦手な単語(まだ完全じゃない語)はありません！";
+    } else if(randomMode === "swamp"){
+      basePool = data.cards.filter(c => isSwamp(c));
+      emptyMsg = `沼単語(${data.settings.swampThreshold}回以上「わからない」を選んだ語)はまだありません！`;
+    } else if(randomMode === "todaynew"){
+      const today = todayStr();
+      const todayNewIds = (data.todayNewDate === today) ? (data.todayNewWordIds || []) : [];
+      basePool = data.cards.filter(c => todayNewIds.includes(c.id));
+      emptyMsg = "今日はまだ新規単語を学習していません。単語帳タブで新規学習を進めてから試してください。";
+    } else {
+      basePool = data.cards.slice(); // all cards, including graduated ones
+      emptyMsg = "単語がまだ登録されていません";
+    }
+    if(basePool.length === 0){
+      showToast(emptyMsg);
+      return;
+    }
+    const pool = basePool.slice();
+    for(let i = pool.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    randomQueue = pool.slice(0, Math.min(n, pool.length)).map(c => c.id);
+    randomIndex = 0;
+    render();
+    autoplayToken++; // invalidate any previous autoplay loop
+    if(chkRandomAutoplay.checked){
+      if(randomDirection !== "en-ja"){
+        showToast("自動再生は「英語→日本語」モードのみ対応しています");
+      } else {
+        autoplayStep(autoplayToken);
+      }
+    }
+  }
+
+  async function advanceStage(){
+    advanceScheduleInMemory();
+    await saveData();
+    render();
+  }
+
+  function switchTab(tab){
+    if(currentTab === "random" && tab !== "random"){
+      autoplayToken++; // stop any running autoplay loop when leaving the random tab
+    }
+    currentTab = tab;
+    document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === tab));
+    if(tab !== "main" && focusMode) setFocusMode(false);
+    updateFocusButtons();
+    deckView.classList.add("hidden");
+    addView.classList.add("hidden");
+    growthView.classList.add("hidden");
+    listView.classList.add("hidden");
+    if(tab === "add"){
+      addView.classList.remove("hidden");
+      populateSettingsInputs();
+    } else if(tab === "growth"){
+      growthView.classList.remove("hidden");
+      renderGrowth();
+    } else if(tab === "list"){
+      listView.classList.remove("hidden");
+      renderWordList();
+    } else {
+      deckView.classList.remove("hidden");
+      renderStats();
+      renderCard();
+    }
+  }
+
+  function showToast(msg){
+    toast.textContent = msg;
+    setTimeout(() => { if(toast.textContent === msg) toast.textContent = ""; }, 2400);
+  }
+
+  const confirmOverlay = el("confirm-overlay");
+  const confirmMessage = el("confirm-message");
+  const confirmOk = el("confirm-ok");
+  const confirmCancel = el("confirm-cancel");
+  const deckBar = el("deck-bar");
+  const headerCollapsible = el("header-collapsible");
+  const appTitle = el("app-title");
+  const kbdHint = el("kbd-hint");
+  const btnFocusStart = el("btn-focus-start");
+  const btnFocusExit = el("btn-focus-exit");
+  const deckCreateOverlay = el("deck-create-overlay");
+  function customConfirm(message){
+    return new Promise((resolve) => {
+      confirmMessage.textContent = message;
+      confirmOverlay.classList.remove("hidden");
+      const cleanup = (result) => {
+        confirmOverlay.classList.add("hidden");
+        confirmOk.removeEventListener("click", onOk);
+        confirmCancel.removeEventListener("click", onCancel);
+        resolve(result);
+      };
+      const onOk = () => cleanup(true);
+      const onCancel = () => cleanup(false);
+      confirmOk.addEventListener("click", onOk);
+      confirmCancel.addEventListener("click", onCancel);
+    });
+  }
+
+  function isSwamp(card){
+    const threshold = (data.settings && data.settings.swampThreshold) || 5;
+    return (card.totalWrongCount || 0) >= threshold;
+  }
+
+  function wordExists(w){
+    const key = w.trim().toLowerCase();
+    return data.cards.some(c => c.word.trim().toLowerCase() === key);
+  }
+
+  function populateSettingsInputs(){
+    const s = data.settings || { newPerDay: 100, maintBatchSize: 200, graduateStreak: DEFAULT_GRADUATE_STREAK, randomDefaultCount: 20, swampThreshold: 5 };
+    el("in-new-limit").value = s.newPerDay;
+    el("in-maint-batch").value = s.maintBatchSize;
+    el("in-graduate-streak").value = s.graduateStreak;
+    el("in-random-default").value = s.randomDefaultCount;
+    el("in-swamp-threshold").value = s.swampThreshold;
+    inRandomCount.value = s.randomDefaultCount;
+    const apiKeyInput = el("in-api-key");
+    if(apiKeyInput) apiKeyInput.value = window.__GEMINI_API_KEY__ || "";
+  }
+
+  document.querySelectorAll(".tab").forEach(t => {
+    t.addEventListener("click", () => switchTab(t.dataset.tab));
+  });
+
+  el("btn-know").addEventListener("click", () => choose(true));
+
+  // --- Swipe gestures (mobile): right = わかる, left = わからない (guess phase),
+  // any tap/swipe advances to the next word once the answer is revealed.
+  (function setupSwipe(){
+    let startX = null, startY = null, dx = 0, dragging = false;
+    const THRESHOLD = 70;
+
+    card.addEventListener("touchstart", (e) => {
+      if(currentTab !== "main" && currentTab !== "random") return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      dx = 0;
+      dragging = true;
+      card.style.transition = "none";
+    }, { passive: true });
+
+    card.addEventListener("touchmove", (e) => {
+      if(!dragging || startX === null) return;
+      dx = e.touches[0].clientX - startX;
+      if(!choiceButtons.classList.contains("hidden")){
+        card.style.transform = `translateX(${dx}px) rotate(${dx / 20}deg)`;
+        card.style.opacity = String(Math.max(0.5, 1 - Math.abs(dx) / 500));
+      }
+    }, { passive: true });
+
+    card.addEventListener("touchend", () => {
+      if(!dragging) return;
+      dragging = false;
+      card.style.transition = "transform .2s ease, opacity .2s ease";
+
+      if(!choiceButtons.classList.contains("hidden")){
+        // guess phase: swipe right/left = わかる/わからない
+        if(dx > THRESHOLD){ card.style.transform = ""; card.style.opacity = ""; choose(true); }
+        else if(dx < -THRESHOLD){ card.style.transform = ""; card.style.opacity = ""; choose(false); }
+        else { card.style.transform = ""; card.style.opacity = ""; }
+      } else if(!nextButtons.classList.contains("hidden")){
+        // revealed phase: any tap/swipe advances to the next word
+        nextCard();
+      }
+      startX = null; startY = null; dx = 0;
+    });
+  })();
+
+  document.addEventListener("keydown", (e) => {
+    const active = document.activeElement;
+    const typing = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+    if(typing) return;
+    if(currentTab !== "main" && currentTab !== "random") return;
+
+    if(e.key === "ArrowRight"){
+      if(!choiceButtons.classList.contains("hidden")){ e.preventDefault(); choose(true); }
+    } else if(e.key === "ArrowLeft"){
+      if(!choiceButtons.classList.contains("hidden")){ e.preventDefault(); choose(false); }
+    } else if(e.key === " " || e.key === "Enter"){
+      if(!nextButtons.classList.contains("hidden")){
+        e.preventDefault();
+        nextCard();
+      } else if(!advanceBtn.classList.contains("hidden")){
+        e.preventDefault();
+        advanceStage();
+      }
+    }
+  });
+  el("btn-dont-know").addEventListener("click", () => choose(false));
+  el("btn-next").addEventListener("click", nextCard);
+  el("btn-delete-forever").addEventListener("click", deleteCardForever);
+  el("btn-advance").addEventListener("click", advanceStage);
+  el("btn-focus-start").addEventListener("click", () => setFocusMode(true));
+  el("btn-focus-exit").addEventListener("click", () => setFocusMode(false));
+  el("btn-start-random").addEventListener("click", () => {
+    startRandomSession();
+    setFocusMode(true);
+  });
+  document.querySelectorAll("#random-range-toggle .mode-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      randomMode = btn.dataset.mode;
+      document.querySelectorAll("#random-range-toggle .mode-btn").forEach(b => b.classList.toggle("active", b === btn));
+    });
+  });
+  document.querySelectorAll("#main-filter-toggle .mode-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      mainViewFilter = btn.dataset.mainfilter;
+      document.querySelectorAll("#main-filter-toggle .mode-btn").forEach(b => b.classList.toggle("active", b === btn));
+      renderCard();
+    });
+  });
+  document.querySelectorAll(".dir-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      randomDirection = btn.dataset.dir;
+      document.querySelectorAll(".dir-btn").forEach(b => b.classList.toggle("active", b === btn));
+      if(randomDirection !== "en-ja" && chkRandomAutoplay.checked){
+        chkRandomAutoplay.checked = false;
+        autoplayToken++;
+        showToast("自動再生は「英語→日本語」モードのみ対応のため停止しました");
+      }
+    });
+  });
+
+  el("btn-add-one").addEventListener("click", async () => {
+    const w = el("in-word").value.trim();
+    const m = el("in-meaning").value.trim();
+    if(!w || !m){ showToast("英単語と意味の両方を入力してください"); return; }
+    if(wordExists(w)){ showToast(`「${w}」はすでに単語帳に登録されています`); return; }
+    data.cards.push(makeCard(w, m));
+    await saveData();
+    el("in-word").value = "";
+    el("in-meaning").value = "";
+    showToast(`「${w}」を追加しました`);
+    render();
+  });
+
+  el("btn-add-bulk").addEventListener("click", async () => {
+    const raw = el("in-bulk").value;
+    const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
+    let added = 0, skipped = 0, duplicates = 0;
+    lines.forEach(line => {
+      let parts = null;
+      if(line.includes("\t")) parts = line.split("\t");
+      else if(line.includes(",")) parts = line.split(",");
+      else if(line.includes(" - ")) parts = line.split(" - ");
+      else if(line.includes("-")) parts = line.split("-");
+      if(parts && parts.length >= 2){
+        const w = parts[0].trim();
+        const m = parts.slice(1).join(",").trim();
+        if(w && m){
+          if(wordExists(w)){ duplicates++; return; }
+          data.cards.push(makeCard(w, m));
+          added++;
+          return;
+        }
+      }
+      skipped++;
+    });
+    if(added > 0){
+      await saveData();
+      el("in-bulk").value = "";
+      render();
+    }
+    const parts = [`${added}語追加`];
+    if(duplicates > 0) parts.push(`${duplicates}語は既存のためスキップ`);
+    if(skipped > 0) parts.push(`${skipped}行は形式エラー`);
+    showToast(parts.join("、"));
+  });
+
+  el("btn-save-settings").addEventListener("click", async () => {
+    const newRaw = el("in-new-limit").value.trim();
+    const maintRaw = el("in-maint-batch").value.trim();
+    const streakRaw = el("in-graduate-streak").value.trim();
+    const randomRaw = el("in-random-default").value.trim();
+    const swampRaw = el("in-swamp-threshold").value.trim();
+    let newPerDay = 100, maintBatchSize = 200, graduateStreak = DEFAULT_GRADUATE_STREAK, randomDefaultCount = 20, swampThreshold = 5;
+    if(newRaw !== ""){
+      const n = parseInt(newRaw, 10);
+      if(!Number.isFinite(n) || n <= 0){ showToast("新しい単語の数は1以上の数字で入力してください"); return; }
+      newPerDay = n;
+    }
+    if(maintRaw !== ""){
+      const n = parseInt(maintRaw, 10);
+      if(!Number.isFinite(n) || n <= 0){ showToast("復習バッチの数は1以上の数字で入力してください"); return; }
+      maintBatchSize = n;
+    }
+    if(streakRaw !== ""){
+      const n = parseInt(streakRaw, 10);
+      if(!Number.isFinite(n) || n <= 0){ showToast("卒業に必要な連続回数は1以上の数字で入力してください"); return; }
+      graduateStreak = n;
+    }
+    if(randomRaw !== ""){
+      const n = parseInt(randomRaw, 10);
+      if(!Number.isFinite(n) || n <= 0){ showToast("ランダム復習の出題数は1以上の数字で入力してください"); return; }
+      randomDefaultCount = n;
+    }
+    if(swampRaw !== ""){
+      const n = parseInt(swampRaw, 10);
+      if(!Number.isFinite(n) || n <= 0){ showToast("沼単語の閾値は1以上の数字で入力してください"); return; }
+      swampThreshold = n;
+    }
+    data.settings = { newPerDay, maintBatchSize, graduateStreak, randomDefaultCount, swampThreshold };
+    // The word list for "today's" stage is frozen when the stage starts, so without
+    // this it would keep using the old newPerDay/maintBatchSize until the next stage.
+    // Recompute it now (already-answered words this session stay excluded automatically).
+    if(data.schedule){
+      data.schedule.currentStageIds = null;
+      data.schedule.answeredIds = [];
+    }
+    await saveData();
+    showToast(`設定を保存しました（新規${newPerDay}語／復習バッチ${maintBatchSize}語／卒業${graduateStreak}連続）`);
+    render();
+  });
+
+  el("btn-reset").addEventListener("click", async () => {
+    if(!(await customConfirm("このセットの学習の進捗（卒業状況・履歴など）をすべてリセットします。単語自体は消えません。よろしいですか？"))) return;
+    data.cards.forEach(c => {
+      c.correctStreak = 0;
+      c.graduated = false;
+      c.introduced = false;
+      c.totalWrongCount = 0;
+    });
+    data.schedule = freshSchedule();
+    data.history = [];
+    await saveData();
+    switchTab("main");
+    showToast("このセットの進捗をリセットしました");
+  });
+
+  el("btn-clear-all").addEventListener("click", async () => {
+    if(!(await customConfirm("プリセットの単語も含めて、単語を全部削除します。設定は残ります。よろしいですか？"))) return;
+    data.cards = [];
+    data.schedule = freshSchedule();
+    randomQueue = [];
+    randomIndex = 0;
+    await saveData();
+    switchTab("add");
+    showToast("単語を全部削除しました。「まとめて追加」から始めてください");
+  });
+
+  el("btn-delete-deck").addEventListener("click", deleteActiveDeck);
+  el("btn-save-api-key").addEventListener("click", () => {
+    const key = el("in-api-key").value.trim();
+    if(!key){
+      localStorage.removeItem("gemini-api-key");
+      window.__GEMINI_API_KEY__ = "";
+      showToast("APIキーを削除しました");
+      return;
+    }
+    localStorage.setItem("gemini-api-key", key);
+    window.__GEMINI_API_KEY__ = key;
+    showToast("APIキーを保存しました");
+  });
+
+  inListSearch.addEventListener("input", () => {
+    listRenderLimit = LIST_PAGE_SIZE;
+    renderWordList();
+  });
+  document.querySelectorAll("#list-filter-toggle .mode-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      listFilter = btn.dataset.filter;
+      listRenderLimit = LIST_PAGE_SIZE;
+      document.querySelectorAll("#list-filter-toggle .mode-btn").forEach(b => b.classList.toggle("active", b === btn));
+      renderWordList();
+    });
+  });
+  btnShuffleList.addEventListener("click", async () => {
+    for(let i = data.cards.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [data.cards[i], data.cards[j]] = [data.cards[j], data.cards[i]];
+    }
+    await saveData();
+    renderWordList();
+    showToast("出題順をシャッフルしました（次に登場する新規単語の順番が変わります）");
+  });
+
+  el("btn-deck-create-empty").addEventListener("click", async () => {
+    const name = el("in-deck-name").value;
+    closeDeckCreateModal();
+    await createDeck(name, false);
+  });
+  el("btn-deck-create-cancel").addEventListener("click", closeDeckCreateModal);
+  el("btn-deck-create-ai").addEventListener("click", async () => {
+    try{
+      const name = el("in-deck-name").value;
+      const needs = el("in-ai-needs").value;
+      const count = el("in-ai-count").value;
+      await createDeckWithAI(name, needs, count);
+    }catch(e){
+      console.error("btn-deck-create-ai click handler error", e);
+      const progressEl = el("ai-progress");
+      if(progressEl){
+        progressEl.style.color = "#C94A3C";
+        progressEl.textContent = `予期しないエラー：${e && e.message ? e.message : String(e)}`;
+      }
+      const btn = el("btn-deck-create-ai");
+      if(btn) btn.disabled = false;
+      showToast("エラーが発生しました");
+    }
+  });
+
+  (function checkInAppBrowser(){
+    const ua = navigator.userAgent || "";
+    const isInApp = /Line\/|FBAN|FBAV|Instagram|MicroMessenger|TikTok|Twitter/i.test(ua);
+    if(isInApp){
+      const banner = el("inapp-warning");
+      if(banner) banner.classList.remove("hidden");
+    }
+  })();
+
+  loadData();
+})();
+</script>
+</body>
+</html>
