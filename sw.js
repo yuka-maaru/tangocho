@@ -1,4 +1,4 @@
-const CACHE_NAME = "tangocho-cache-v1";
+const CACHE_NAME = "tangocho-cache-v2";
 const APP_SHELL = [
   "./index.html",
   "./manifest.json",
@@ -27,24 +27,23 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const req = event.request;
 
-  // Never cache API calls (word-generation, etc.) — always go to the network.
-  if (req.url.includes("api.anthropic.com")) {
+  // Never cache API calls — always go straight to the network.
+  if (req.url.includes("api.anthropic.com") || req.url.includes("generativelanguage.googleapis.com")) {
     return;
   }
 
-  // App shell: cache-first, falling back to network, then updating the cache.
+  // App shell: network-first, so updated files (like this one, or index.html)
+  // are picked up on the very next reload instead of being stuck behind a
+  // stale cache. Falls back to the cache only when offline.
   event.respondWith(
-    caches.match(req).then((cached) => {
-      const networkFetch = fetch(req)
-        .then((res) => {
-          if (res && res.status === 200 && req.method === "GET") {
-            const resClone = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
-          }
-          return res;
-        })
-        .catch(() => cached);
-      return cached || networkFetch;
-    })
+    fetch(req)
+      .then((res) => {
+        if (res && res.status === 200 && req.method === "GET") {
+          const resClone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+        }
+        return res;
+      })
+      .catch(() => caches.match(req))
   );
 });
