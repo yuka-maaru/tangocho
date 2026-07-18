@@ -901,6 +901,20 @@
       <div class="hint">1行に「英単語, 意味」の形式で入力（カンマ・タブ・「-」区切りOK）。改行で複数語まとめて追加できます。</div>
       <div class="row-btn"><button class="btn btn-navy" id="btn-add-bulk" style="flex:none;padding:10px 20px;">まとめて追加する</button></div>
     </div>
+    <div class="ai-create-panel" style="margin-bottom:16px;">
+      <div class="ai-create-title">🤖 AIで単語を追加(今のセットに)</div>
+      <div class="hint" style="margin-bottom:10px;">今のセットに、条件に合った単語をAIで追加します。すでに登録済みの単語とは重複しません。</div>
+      <div class="field" style="margin-bottom:8px;">
+        <label for="in-ai-add-needs">どんな単語を追加する？</label>
+        <input id="in-ai-add-needs" type="text" placeholder="例: 英検準1級レベル、ビジネス英語など">
+      </div>
+      <div class="field" style="margin-bottom:10px;">
+        <label for="in-ai-add-count">何語追加する？</label>
+        <input id="in-ai-add-count" type="number" min="1" max="300" placeholder="例: 50">
+      </div>
+      <button class="btn btn-navy" id="btn-ai-add-words" style="width:100%;">🤖 AIで追加する</button>
+      <div class="hint" id="ai-add-progress" style="text-align:center;margin-top:8px;min-height:16px;"></div>
+    </div>
     <div class="toast" id="toast"></div>
     <div class="panel" style="margin-top:6px;margin-bottom:14px;">
       <h2 style="font-size:14px;">🤖 AI機能の設定</h2>
@@ -2749,7 +2763,7 @@
   // Generates up to `totalCount` unique {word, meaning} pairs matching
   // `needsDescription`, via repeated Gemini API calls (each call is capped
   // by output length, so large requests are split into batches and merged).
-  async function generateWordsWithAI(needsDescription, totalCount, onProgress, onError){
+  async function generateWordsWithAI(needsDescription, totalCount, onProgress, onError, existingWords){
     if(typeof fetch === "undefined"){
       if(onError) onError("この環境ではAI機能(fetch)が使えません。");
       return [];
@@ -2757,7 +2771,7 @@
     const BATCH_SIZE = 40;
     const MAX_ATTEMPTS = Math.ceil(totalCount / BATCH_SIZE) + 4;
     const results = [];
-    const usedKeys = new Set();
+    const usedKeys = new Set((existingWords || []).map(w => w.trim().toLowerCase()));
     let attempts = 0;
     let lastError = null;
 
@@ -2932,6 +2946,54 @@
     switchTab("main");
     const shortfall = words.length < n ? `(目標${n}語のうち${words.length}語作成しました)` : "";
     showToast(`「${trimmed}」をAIで作成しました ${shortfall}`.trim());
+  }
+
+  async function addWordsToActiveDeckWithAI(needsDescription, count){
+    const needs = (needsDescription || "").trim();
+    if(!needs){ showToast("どんな単語が欲しいか入力してください"); return; }
+    const countRaw = (count || "").toString().trim();
+    const n = countRaw === "" ? 50 : parseInt(countRaw, 10);
+    if(!Number.isFinite(n) || n <= 0){ showToast("語数は1以上の数字で入力してください"); return; }
+
+    const btn = el("btn-ai-add-words");
+    const progressEl = el("ai-add-progress");
+    btn.disabled = true;
+    progressEl.style.color = "";
+    progressEl.textContent = "AIが単語を考えています…";
+
+    const existingWords = data.cards.map(c => c.word);
+    let words = [];
+    try{
+      words = await generateWordsWithAI(
+        needs, n,
+        (done, total) => { progressEl.textContent = `生成中… ${done}/${total}語`; },
+        (errMsg) => { progressEl.style.color = "#C94A3C"; progressEl.textContent = errMsg; },
+        existingWords
+      );
+    }catch(e){
+      console.error("addWordsToActiveDeckWithAI unexpected error", e);
+      progressEl.style.color = "#C94A3C";
+      progressEl.textContent = `予期しないエラー：${e && e.message ? e.message : String(e)}`;
+    }
+
+    btn.disabled = false;
+
+    if(words.length === 0){
+      if(!progressEl.textContent){
+        progressEl.style.color = "#C94A3C";
+        progressEl.textContent = "単語の生成に失敗しました。もう一度お試しください。";
+      }
+      showToast("単語の生成に失敗しました");
+      return;
+    }
+
+    progressEl.style.color = "";
+    progressEl.textContent = "";
+    data.cards.push(...words.map(w => makeCard(w.word, w.meaning)));
+    await saveData();
+    render();
+    const shortfall = words.length < n ? `(目標${n}語のうち${words.length}語追加しました)` : "";
+    showToast(`${words.length}語をAIで追加しました ${shortfall}`.trim());
   }
 
   async function deleteActiveDeck(){
@@ -4011,6 +4073,23 @@
     if(duplicates > 0) parts.push(`${duplicates}語は既存のためスキップ`);
     if(skipped > 0) parts.push(`${skipped}行は形式エラー`);
     showToast(parts.join("、"));
+  });
+  el("btn-ai-add-words").addEventListener("click", async () => {
+    try{
+      const needs = el("in-ai-add-needs").value;
+      const count = el("in-ai-add-count").value;
+      await addWordsToActiveDeckWithAI(needs, count);
+    }catch(e){
+      console.error("btn-ai-add-words click handler error", e);
+      const progressEl = el("ai-add-progress");
+      if(progressEl){
+        progressEl.style.color = "#C94A3C";
+        progressEl.textContent = `予期しないエラー：${e && e.message ? e.message : String(e)}`;
+      }
+      const btn = el("btn-ai-add-words");
+      if(btn) btn.disabled = false;
+      showToast("エラーが発生しました");
+    }
   });
 
   el("btn-save-settings").addEventListener("click", async () => {
