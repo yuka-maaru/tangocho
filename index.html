@@ -358,6 +358,42 @@
   }
   .delete-forever:hover{color:var(--film-red-deep);}
 
+  .correction-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    font-size:12px;
+    color:var(--text-mute);
+    margin-top:10px;
+  }
+  .correction-row button{
+    background:none;
+    border:none;
+    font-family:inherit;
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink-green);
+    text-decoration:underline;
+    cursor:pointer;
+    padding:2px 4px;
+  }
+  .undo-link{
+    display:block;
+    width:100%;
+    margin-top:10px;
+    background:none;
+    border:none;
+    font-family:inherit;
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--navy);
+    text-align:center;
+    cursor:pointer;
+    padding:6px;
+  }
+  .undo-link:hover{color:var(--ink-green-deep);}
+
   .empty-state{
     text-align:center;
     padding:40px 20px;
@@ -842,6 +878,11 @@
     <div class="next-buttons hidden" id="next-buttons">
       <button class="btn btn-outline" id="btn-next">つぎの単語へ →</button>
     </div>
+    <div class="correction-row hidden" id="correction-row">
+      <span>押し間違えた？</span>
+      <button type="button" id="btn-correct-choice">訂正する</button>
+    </div>
+    <button class="undo-link hidden" id="btn-undo-answer">↩️ 直前の回答を取り消す</button>
     <button class="delete-forever hidden" id="btn-delete-forever">🗑 完全に削除する(もう二度と出さない)</button>
     <div class="empty-state hidden" id="empty-state"></div>
     <button class="advance-btn hidden" id="btn-advance">次のステージに進む →</button>
@@ -2445,6 +2486,7 @@
   let data = null;
   let currentTab = "main";
   let focusMode = false;
+  let lastAnswer = null; // snapshot of the most recent answer, for one-step undo
   let phase = "guess"; // 'guess' | 'revealed'  (card flip state, unrelated to schedule phase)
   let pendingKnown = null;
   let randomQueue = [];   // array of card ids for the current random-review session
@@ -2465,6 +2507,8 @@
   const nextButtons = el("next-buttons");
   const advanceBtn = el("btn-advance");
   const deleteForeverBtn = el("btn-delete-forever");
+  const correctionRow = el("correction-row");
+  const undoAnswerBtn = el("btn-undo-answer");
   const emptyState = el("empty-state");
   const card = el("card");
   const deckView = el("deck-view");
@@ -2733,6 +2777,7 @@
 
   async function switchDeck(deckId){
     if(!deckRegistry || deckId === deckRegistry.activeDeckId) return;
+    lastAnswer = null;
     await saveData(); // persist the deck we're leaving
     const target = deckRegistry.decks.find(d => d.id === deckId);
     deckRegistry.activeDeckId = deckId;
@@ -3300,12 +3345,14 @@
     randomControls.classList.toggle("hidden", currentTab !== "random" || focusMode);
     if(currentTab === "random"){
       mainFilterToggle.classList.add("hidden");
+      undoAnswerBtn.classList.add("hidden");
       updateFocusButtons();
       renderRandomCard();
       return;
     }
     mainFilterToggle.classList.toggle("hidden", !mainFilterAllowed() || focusMode);
     updateFocusButtons();
+    undoAnswerBtn.classList.toggle("hidden", !lastAnswer);
 
     const deck = currentDeck();
     phase = "guess";
@@ -3313,6 +3360,7 @@
     film.classList.remove("revealed");
     choiceButtons.classList.remove("hidden");
     nextButtons.classList.add("hidden");
+    correctionRow.classList.add("hidden");
     card.classList.remove("jaen-mode");
     deleteForeverBtn.classList.add("hidden");
     advanceBtn.classList.add("hidden");
@@ -3325,6 +3373,7 @@
       card.classList.add("hidden");
       choiceButtons.classList.add("hidden");
       nextButtons.classList.add("hidden");
+      correctionRow.classList.add("hidden");
       deleteForeverBtn.classList.add("hidden");
       progress.textContent = "";
 
@@ -3371,6 +3420,7 @@
     film.classList.remove("revealed");
     choiceButtons.classList.remove("hidden");
     nextButtons.classList.add("hidden");
+    correctionRow.classList.add("hidden");
     deleteForeverBtn.classList.add("hidden");
     advanceBtn.classList.add("hidden");
     stageBadge.classList.add("hidden");
@@ -3663,6 +3713,7 @@
     film.classList.add("revealed");
     choiceButtons.classList.add("hidden");
     nextButtons.classList.remove("hidden");
+    correctionRow.classList.remove("hidden");
     deleteForeverBtn.classList.toggle("hidden", !known);
     if(currentTab === "random" && randomDirection === "ja-en"){
       speakWord(meaningText.textContent, true);
@@ -3681,6 +3732,20 @@
     const cardData = data.cards.find(c => c.id === item.id);
     const sch = data.schedule;
     if(cardData){
+      lastAnswer = {
+        cardId: cardData.id,
+        prevIntroduced: cardData.introduced,
+        prevCorrectStreak: cardData.correctStreak,
+        prevGraduated: cardData.graduated,
+        prevTotalWrongCount: cardData.totalWrongCount,
+        hadSessionWrong: sch.sessionWrongIds.includes(cardData.id),
+        hadSessionNew: sch.sessionNewIds.includes(cardData.id),
+        hadAnswered: sch.answeredIds.includes(cardData.id),
+        prevTodayStudyDate: data.todayStudyDate,
+        prevTodayStudyCount: data.todayStudyCount,
+        prevTodayNewDate: data.todayNewDate,
+        hadTodayNew: (data.todayNewWordIds || []).includes(cardData.id)
+      };
       const wasNew = !cardData.introduced;
       cardData.introduced = true;
       if(pendingKnown){
@@ -3718,6 +3783,40 @@
     }
     render();
     await saveData();
+  }
+
+  async function undoLastAnswer(){
+    if(!lastAnswer) return;
+    const cardData = data.cards.find(c => c.id === lastAnswer.cardId);
+    if(!cardData){
+      lastAnswer = null;
+      render();
+      return;
+    }
+    const sch = data.schedule;
+    cardData.introduced = lastAnswer.prevIntroduced;
+    cardData.correctStreak = lastAnswer.prevCorrectStreak;
+    cardData.graduated = lastAnswer.prevGraduated;
+    cardData.totalWrongCount = lastAnswer.prevTotalWrongCount;
+    if(!lastAnswer.hadSessionWrong){
+      sch.sessionWrongIds = sch.sessionWrongIds.filter(id => id !== cardData.id);
+    }
+    if(!lastAnswer.hadSessionNew){
+      sch.sessionNewIds = sch.sessionNewIds.filter(id => id !== cardData.id);
+    }
+    if(!lastAnswer.hadAnswered){
+      sch.answeredIds = sch.answeredIds.filter(id => id !== cardData.id);
+    }
+    data.todayStudyDate = lastAnswer.prevTodayStudyDate;
+    data.todayStudyCount = lastAnswer.prevTodayStudyCount;
+    data.todayNewDate = lastAnswer.prevTodayNewDate;
+    if(!lastAnswer.hadTodayNew && data.todayNewWordIds){
+      data.todayNewWordIds = data.todayNewWordIds.filter(id => id !== cardData.id);
+    }
+    lastAnswer = null;
+    await saveData();
+    render();
+    showToast("直前の回答を取り消しました");
   }
 
   async function deleteCardForever(){
@@ -3831,6 +3930,7 @@
   }
 
   async function advanceStage(){
+    lastAnswer = null;
     advanceScheduleInMemory();
     await saveData();
     render();
@@ -3839,6 +3939,9 @@
   function switchTab(tab){
     if(currentTab === "random" && tab !== "random"){
       autoplayToken++; // stop any running autoplay loop when leaving the random tab
+    }
+    if(currentTab === "main" && tab !== "main"){
+      lastAnswer = null; // undo only applies within the main-tab session it happened in
     }
     currentTab = tab;
     document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === tab));
@@ -3996,6 +4099,8 @@
   });
   el("btn-dont-know").addEventListener("click", () => choose(false));
   el("btn-next").addEventListener("click", nextCard);
+  el("btn-correct-choice").addEventListener("click", () => choose(!pendingKnown));
+  el("btn-undo-answer").addEventListener("click", undoLastAnswer);
   el("btn-delete-forever").addEventListener("click", deleteCardForever);
   el("btn-advance").addEventListener("click", advanceStage);
   el("btn-focus-start").addEventListener("click", () => setFocusMode(true));
