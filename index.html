@@ -43,7 +43,7 @@
     min-height:100vh;
     display:flex;
     justify-content:center;
-    padding:28px 16px 60px;
+    padding:calc(28px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) calc(60px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px));
     transition:background .35s ease;
   }
   html.focus-bg, body.focus-bg{
@@ -380,7 +380,7 @@
   .panel h2{font-size:14px;margin:0 0 12px;color:var(--navy);}
   .field{margin-bottom:10px;}
   .field label{display:block;font-size:11.5px;color:var(--text-mute);margin-bottom:4px;font-weight:700;}
-  .field input, .field textarea{
+  .field input, .field textarea, .field select{
     width:100%;
     border:1.5px solid var(--card-border);
     border-radius:9px;
@@ -913,7 +913,31 @@
         <label for="in-api-key">Google Gemini APIキー</label>
         <input id="in-api-key" type="password" placeholder="AIza...">
       </div>
+      <div class="field" style="margin-bottom:8px;">
+        <label for="in-gemini-model">使用するモデル</label>
+        <select id="in-gemini-model">
+          <option value="gemini-flash-latest">Flash（無料枠が多い。おすすめ）</option>
+          <option value="gemini-pro-latest">Pro（質は高いが無料枠が少ない）</option>
+        </select>
+      </div>
       <button class="btn btn-outline" id="btn-save-api-key" style="width:100%;">キーを保存する</button>
+    </div>
+    <div class="panel" style="margin-top:6px;margin-bottom:14px;">
+      <h2 style="font-size:14px;">📤 バックアップ／別端末への引き継ぎ</h2>
+      <div class="hint" style="margin-bottom:10px;">
+        すべてのセット・単語・進捗を1つのファイルに書き出せます。そのファイルを別の端末(スマホ・PC・iPadなど)に送って読み込めば、同じ状態を引き継げます。
+      </div>
+      <button class="btn btn-outline" id="btn-export-backup" style="width:100%;margin-bottom:10px;">📤 バックアップを書き出す（ダウンロード）</button>
+      <label for="in-import-backup" class="btn btn-navy" style="width:100%;display:block;text-align:center;box-sizing:border-box;">📥 バックアップから読み込む</label>
+      <input type="file" id="in-import-backup" accept="application/json" style="display:none;">
+    </div>
+    <div class="panel" style="margin-top:6px;margin-bottom:14px;">
+      <h2 style="font-size:14px;">✏️ 今のセットの名前を変更</h2>
+      <div class="field" style="margin-bottom:8px;">
+        <label for="in-rename-deck">セット名</label>
+        <input id="in-rename-deck" type="text" placeholder="例: 生物">
+      </div>
+      <button class="btn btn-outline" id="btn-rename-deck" style="width:100%;">名前を変更する</button>
     </div>
     <button class="reset-link" id="btn-clear-all">🗑 単語をすべて削除してまっさらから始める（自分で追加していくスタイル向け）</button>
     <button class="reset-link" id="btn-reset">このセットの進捗だけリセットする（単語は消えません）</button>
@@ -1065,6 +1089,7 @@
   // Free tier, no credit card needed: https://aistudio.google.com/apikey
   // Stored locally only — never sent anywhere but Google's API.
   window.__GEMINI_API_KEY__ = localStorage.getItem("gemini-api-key") || "";
+  window.__GEMINI_MODEL__ = localStorage.getItem("gemini-model") || "gemini-flash-latest";
 
   // --- PWA: register the service worker for offline app-shell caching --
   if ("serviceWorker" in navigator) {
@@ -2549,6 +2574,62 @@
     }
   }
 
+  async function exportAllData(){
+    if(!deckRegistry){ showToast("データがまだ読み込まれていません"); return; }
+    await saveData(); // make sure the currently-open deck's latest state is persisted first
+    const bundle = { exportedAt: new Date().toISOString(), registry: deckRegistry, decks: {} };
+    for(const d of deckRegistry.decks){
+      try{
+        const res = await window.storage.get(deckStorageKey(d.id), false);
+        if(res && res.value) bundle.decks[d.id] = JSON.parse(res.value);
+      }catch(e){ console.error("export: failed to read deck", d.id, e); }
+    }
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `tangocho-backup-${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    showToast("バックアップを書き出しました");
+  }
+
+  async function importAllData(file){
+    if(!file){ return; }
+    let bundle;
+    try{
+      const text = await file.text();
+      bundle = JSON.parse(text);
+    }catch(e){
+      showToast("ファイルを読み取れませんでした。正しいバックアップファイルか確認してください");
+      return;
+    }
+    if(!bundle || !bundle.registry || !bundle.decks || !Array.isArray(bundle.registry.decks)){
+      showToast("バックアップファイルの形式が正しくありません");
+      return;
+    }
+    const deckCount = bundle.registry.decks.length;
+    const ok = await customConfirm(
+      `このファイルには${deckCount}個のセットが含まれています。読み込むと、今この端末にあるデータはすべて上書きされます。よろしいですか？`
+    );
+    if(!ok) return;
+    try{
+      await window.storage.set(DECK_REGISTRY_KEY, JSON.stringify(bundle.registry), false);
+      for(const id of Object.keys(bundle.decks)){
+        await window.storage.set(deckStorageKey(id), JSON.stringify(bundle.decks[id]), false);
+      }
+    }catch(e){
+      showToast("読み込み中にエラーが発生しました");
+      console.error("import failed", e);
+      return;
+    }
+    showToast("読み込みました。再読み込みします…");
+    setTimeout(() => { window.location.reload(); }, 800);
+  }
+
   async function loadActiveDeckData(){
     const key = deckStorageKey(deckRegistry.activeDeckId);
     try{
@@ -2698,8 +2779,9 @@
           console.error(lastError);
           break;
         }
+        const model = window.__GEMINI_MODEL__ || "gemini-flash-latest";
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2723,6 +2805,7 @@
           break;
         }
         const candidate = (data.candidates || [])[0];
+        const finishReason = candidate && candidate.finishReason;
         const text = ((candidate && candidate.content && candidate.content.parts) || [])
           .map(p => p.text || "")
           .join("");
@@ -2731,9 +2814,40 @@
         try{
           parsed = JSON.parse(cleaned);
         }catch(parseErr){
-          lastError = `AIの応答をJSONとして読み取れませんでした：${cleaned.slice(0, 150)}`;
-          console.error(lastError, parseErr);
-          break;
+          // The model may have added a preamble/trailing note around the JSON
+          // array, or truncated mid-list. Try pulling out just the [...] part.
+          const start = cleaned.indexOf("[");
+          const end = cleaned.lastIndexOf("]");
+          if(start !== -1 && end > start){
+            try{
+              parsed = JSON.parse(cleaned.slice(start, end + 1));
+            }catch(parseErr2){
+              parsed = null;
+            }
+          }
+          if(!parsed){
+            // Last resort: salvage any individually-complete {"word":...,"meaning":...}
+            // objects even if the overall array is malformed or was cut off mid-list.
+            const objectMatches = cleaned.match(/\{[^{}]*\}/g);
+            if(objectMatches){
+              const salvaged = [];
+              for(const m of objectMatches){
+                try{
+                  const obj = JSON.parse(m);
+                  if(obj && typeof obj.word === "string" && typeof obj.meaning === "string"){
+                    salvaged.push(obj);
+                  }
+                }catch(e3){ /* skip unparsable fragment */ }
+              }
+              if(salvaged.length > 0) parsed = salvaged;
+            }
+          }
+          if(!parsed){
+            const truncatedNote = finishReason === "MAX_TOKENS" ? "(応答が長すぎて途中で切れた可能性があります) " : "";
+            lastError = `AIの応答をJSONとして読み取れませんでした。${truncatedNote}受け取った内容：${cleaned.slice(0, 150)}`;
+            console.error(lastError, parseErr);
+            break;
+          }
         }
         let addedThisRound = 0;
         if(Array.isArray(parsed)){
@@ -2834,6 +2948,24 @@
     switchTab("main");
     renderDeckBar();
     showToast(`「${current.name}」を削除しました`);
+  }
+
+  async function renameActiveDeck(newName){
+    if(!deckRegistry) return;
+    const trimmed = (newName || "").trim();
+    if(!trimmed){ showToast("セット名を入力してください"); return; }
+    const current = deckRegistry.decks.find(d => d.id === deckRegistry.activeDeckId);
+    if(!current) return;
+    if(trimmed === current.name){ showToast("名前は変わっていません"); return; }
+    if(deckRegistry.decks.some(d => d.id !== current.id && d.name === trimmed)){
+      showToast("同じ名前のセットが既にあります");
+      return;
+    }
+    const oldName = current.name;
+    current.name = trimmed;
+    await saveRegistry();
+    renderDeckBar();
+    showToast(`「${oldName}」を「${trimmed}」に変更しました`);
   }
 
   function openDeckCreateModal(){
@@ -3723,6 +3855,13 @@
     inRandomCount.value = s.randomDefaultCount;
     const apiKeyInput = el("in-api-key");
     if(apiKeyInput) apiKeyInput.value = window.__GEMINI_API_KEY__ || "";
+    const modelInput = el("in-gemini-model");
+    if(modelInput) modelInput.value = window.__GEMINI_MODEL__ || "gemini-flash-latest";
+    const renameInput = el("in-rename-deck");
+    if(renameInput && deckRegistry){
+      const current = deckRegistry.decks.find(d => d.id === deckRegistry.activeDeckId);
+      renameInput.value = current ? current.name : "";
+    }
   }
 
   document.querySelectorAll(".tab").forEach(t => {
@@ -3946,6 +4085,15 @@
   });
 
   el("btn-delete-deck").addEventListener("click", deleteActiveDeck);
+  el("btn-rename-deck").addEventListener("click", () => {
+    renameActiveDeck(el("in-rename-deck").value);
+  });
+  el("btn-export-backup").addEventListener("click", exportAllData);
+  el("in-import-backup").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    importAllData(file);
+    e.target.value = ""; // allow re-selecting the same file later
+  });
   el("btn-save-api-key").addEventListener("click", () => {
     const key = el("in-api-key").value.trim();
     if(!key){
