@@ -359,25 +359,22 @@
   .delete-forever:hover{color:var(--film-red-deep);}
 
   .correction-row{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    font-size:12px;
-    color:var(--text-mute);
+    display:block;
+    width:100%;
     margin-top:10px;
-  }
-  .correction-row button{
-    background:none;
-    border:none;
-    font-family:inherit;
-    font-size:12px;
-    font-weight:700;
+    padding:10px;
+    border-radius:10px;
+    border:1.5px solid var(--ink-green);
+    background:var(--card-bg);
     color:var(--ink-green);
-    text-decoration:underline;
+    font-family:inherit;
+    font-size:13px;
+    font-weight:700;
     cursor:pointer;
-    padding:2px 4px;
+    text-align:center;
   }
+  .correction-row:hover{background:#EAF3EC;}
+  .correction-row:active{transform:scale(.98);}
   .undo-link{
     display:block;
     width:100%;
@@ -878,10 +875,7 @@
     <div class="next-buttons hidden" id="next-buttons">
       <button class="btn btn-outline" id="btn-next">つぎの単語へ →</button>
     </div>
-    <div class="correction-row hidden" id="correction-row">
-      <span>押し間違えた？</span>
-      <button type="button" id="btn-correct-choice">訂正する</button>
-    </div>
+    <button type="button" class="correction-row hidden" id="btn-correct-choice">🔄 わかる ⇔ わからない　判定変更（次へ進む）</button>
     <button class="undo-link hidden" id="btn-undo-answer">↩️ 直前の回答を取り消す</button>
     <button class="delete-forever hidden" id="btn-delete-forever">🗑 完全に削除する(もう二度と出さない)</button>
     <div class="empty-state hidden" id="empty-state"></div>
@@ -2507,7 +2501,7 @@
   const nextButtons = el("next-buttons");
   const advanceBtn = el("btn-advance");
   const deleteForeverBtn = el("btn-delete-forever");
-  const correctionRow = el("correction-row");
+  const correctionRow = el("btn-correct-choice");
   const undoAnswerBtn = el("btn-undo-answer");
   const emptyState = el("empty-state");
   const card = el("card");
@@ -4099,7 +4093,10 @@
   });
   el("btn-dont-know").addEventListener("click", () => choose(false));
   el("btn-next").addEventListener("click", nextCard);
-  el("btn-correct-choice").addEventListener("click", () => choose(!pendingKnown));
+  el("btn-correct-choice").addEventListener("click", () => {
+    pendingKnown = !pendingKnown;
+    nextCard();
+  });
   el("btn-undo-answer").addEventListener("click", undoLastAnswer);
   el("btn-delete-forever").addEventListener("click", deleteCardForever);
   el("btn-advance").addEventListener("click", advanceStage);
