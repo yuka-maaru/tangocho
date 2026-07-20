@@ -2802,6 +2802,8 @@
   // Generates up to `totalCount` unique {word, meaning} pairs matching
   // `needsDescription`, via repeated Gemini API calls (each call is capped
   // by output length, so large requests are split into batches and merged).
+  function sleep(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
   async function generateWordsWithAI(needsDescription, totalCount, onProgress, onError, existingWords){
     if(typeof fetch === "undefined"){
       if(onError) onError("この環境ではAI機能(fetch)が使えません。");
@@ -2814,9 +2816,16 @@
     const usedKeys = new Set((existingWords || []).map(w => w.trim().toLowerCase()));
     let attempts = 0;
     let lastError = null;
+    let lastAttemptFailed = false;
 
     while(results.length < totalCount && attempts < MAX_ATTEMPTS){
       attempts++;
+      if(attempts > 1){
+        // Small gap between calls to stay under free-tier rate limits; a
+        // longer backoff after a failure in case it was a rate-limit hit.
+        await sleep(lastAttemptFailed ? 4000 : 1200);
+      }
+      lastAttemptFailed = false;
       const need = Math.min(BATCH_SIZE, totalCount - results.length);
       const avoidList = Array.from(usedKeys).slice(-150).join(", ");
       const prompt =
@@ -2856,12 +2865,14 @@
           // Auth/request errors won't fix themselves on retry; anything else
           // (rate limit, server hiccup) is worth trying again with the next batch.
           if(response.status === 400 || response.status === 401 || response.status === 403) break;
+          lastAttemptFailed = true;
           continue;
         }
         const data = await response.json();
         if(data && data.error){
           lastError = `APIエラー：${data.error.message || JSON.stringify(data.error)}`;
           console.error(lastError, data);
+          lastAttemptFailed = true;
           continue;
         }
         const candidate = (data.candidates || [])[0];
@@ -2906,6 +2917,7 @@
             const truncatedNote = finishReason === "MAX_TOKENS" ? "(応答が長すぎて途中で切れた可能性があります) " : "";
             lastError = `AIの応答をJSONとして読み取れませんでした。${truncatedNote}受け取った内容：${cleaned.slice(0, 150)}`;
             console.error(lastError, parseErr);
+            lastAttemptFailed = true;
             continue; // one bad batch shouldn't throw away everything already gathered — just try again
           }
         }
@@ -2925,11 +2937,13 @@
           if(addedThisRound === 0) break; // a well-formed response with nothing new means the AI has run dry on this topic
         } else {
           lastError = "AIの応答が単語リストの形式ではありませんでした。";
+          lastAttemptFailed = true;
           continue;
         }
       }catch(e){
         lastError = `通信エラー：${e && e.message ? e.message : String(e)}`;
         console.error("AI word generation failed", e);
+        lastAttemptFailed = true;
         continue; // network hiccups are worth retrying
       }
     }
