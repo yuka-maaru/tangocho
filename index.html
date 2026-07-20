@@ -2808,7 +2808,8 @@
       return [];
     }
     const BATCH_SIZE = 40;
-    const MAX_ATTEMPTS = Math.ceil(totalCount / BATCH_SIZE) + 4;
+    const neededBatches = Math.ceil(totalCount / BATCH_SIZE);
+    const MAX_ATTEMPTS = neededBatches * 2 + 3; // generous retry budget since transient failures no longer abort the whole run
     const results = [];
     const usedKeys = new Set((existingWords || []).map(w => w.trim().toLowerCase()));
     let attempts = 0;
@@ -2830,7 +2831,7 @@
         if(!apiKey){
           lastError = "Google Gemini APIキーが設定されていません。「＋追加・設定」タブの一番下からキーを設定してください。";
           console.error(lastError);
-          break;
+          break; // fatal: no point retrying without a key
         }
         const model = window.__GEMINI_MODEL__ || "gemini-flash-latest";
         const response = await fetch(
@@ -2852,13 +2853,16 @@
           try{ bodyText = await response.text(); }catch(e2){}
           lastError = `APIエラー(HTTP ${response.status})：${bodyText.slice(0, 200)}`;
           console.error(lastError);
-          break;
+          // Auth/request errors won't fix themselves on retry; anything else
+          // (rate limit, server hiccup) is worth trying again with the next batch.
+          if(response.status === 400 || response.status === 401 || response.status === 403) break;
+          continue;
         }
         const data = await response.json();
         if(data && data.error){
           lastError = `APIエラー：${data.error.message || JSON.stringify(data.error)}`;
           console.error(lastError, data);
-          break;
+          continue;
         }
         const candidate = (data.candidates || [])[0];
         const finishReason = candidate && candidate.finishReason;
@@ -2902,7 +2906,7 @@
             const truncatedNote = finishReason === "MAX_TOKENS" ? "(応答が長すぎて途中で切れた可能性があります) " : "";
             lastError = `AIの応答をJSONとして読み取れませんでした。${truncatedNote}受け取った内容：${cleaned.slice(0, 150)}`;
             console.error(lastError, parseErr);
-            break;
+            continue; // one bad batch shouldn't throw away everything already gathered — just try again
           }
         }
         let addedThisRound = 0;
@@ -2917,15 +2921,16 @@
               }
             }
           }
+          if(onProgress) onProgress(results.length, totalCount);
+          if(addedThisRound === 0) break; // a well-formed response with nothing new means the AI has run dry on this topic
         } else {
           lastError = "AIの応答が単語リストの形式ではありませんでした。";
+          continue;
         }
-        if(onProgress) onProgress(results.length, totalCount);
-        if(addedThisRound === 0) break; // AI stopped producing anything new; avoid spinning forever
       }catch(e){
         lastError = `通信エラー：${e && e.message ? e.message : String(e)}`;
         console.error("AI word generation failed", e);
-        break;
+        continue; // network hiccups are worth retrying
       }
     }
     if(results.length === 0 && lastError && onError) onError(lastError);
