@@ -375,6 +375,38 @@
   }
   .correction-row:hover{background:#EAF3EC;}
   .correction-row:active{transform:scale(.98);}
+  .drill-panel{
+    background:var(--paper);
+    border:1.5px dashed var(--card-border);
+    border-radius:12px;
+    padding:12px;
+    margin-bottom:14px;
+  }
+  .drill-panel-label{
+    display:block;
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--text-dark);
+    margin-bottom:8px;
+  }
+  .drill-panel-row{
+    display:flex;
+    gap:8px;
+  }
+  .drill-panel-row input{
+    width:70px;
+    flex:none;
+    border:1.5px solid var(--card-border);
+    border-radius:8px;
+    padding:8px;
+    font-family:inherit;
+    font-size:14px;
+    text-align:center;
+  }
+  .drill-panel-row button{
+    flex:1;
+  }
+
   .undo-link{
     display:block;
     width:100%;
@@ -877,8 +909,16 @@
     </div>
     <button type="button" class="correction-row hidden" id="btn-correct-choice">🔄 わかる ⇔ わからない　判定変更（次へ進む）</button>
     <button class="undo-link hidden" id="btn-undo-answer">↩️ 直前の回答を取り消す</button>
+    <button class="undo-link hidden" id="btn-exit-drill">✕ 復習を終了する</button>
     <button class="delete-forever hidden" id="btn-delete-forever">🗑 完全に削除する(もう二度と出さない)</button>
     <div class="empty-state hidden" id="empty-state"></div>
+    <div class="drill-panel hidden" id="drill-panel">
+      <label for="in-drill-count" class="drill-panel-label">🔁 わからなかった単語だけ復習する（記録に影響しません）：<span id="drill-count-label"></span>語</label>
+      <div class="drill-panel-row">
+        <input type="number" id="in-drill-count" min="1">
+        <button class="btn btn-outline" id="btn-drill-wrong" style="flex:none;padding:10px 16px;">復習する</button>
+      </div>
+    </div>
     <button class="advance-btn hidden" id="btn-advance">次のステージに進む →</button>
   </main>
 
@@ -977,8 +1017,10 @@
         すべてのセット・単語・進捗を1つのファイルに書き出せます。そのファイルを別の端末(スマホ・PC・iPadなど)に送って読み込めば、同じ状態を引き継げます。
       </div>
       <button class="btn btn-outline" id="btn-export-backup" style="width:100%;margin-bottom:10px;">📤 バックアップを書き出す（ダウンロード）</button>
-      <label for="in-import-backup" class="btn btn-navy" style="width:100%;display:block;text-align:center;box-sizing:border-box;">📥 バックアップから読み込む</label>
+      <label for="in-import-backup" class="btn btn-navy" style="width:100%;display:block;text-align:center;box-sizing:border-box;margin-bottom:10px;">📥 バックアップから読み込む（全部を置き換え）</label>
       <input type="file" id="in-import-backup" accept="application/json" style="display:none;">
+      <label for="in-merge-decks" class="btn btn-outline" style="width:100%;display:block;text-align:center;box-sizing:border-box;">➕ セットだけ追加で読み込む（今のデータは残す）</label>
+      <input type="file" id="in-merge-decks" accept="application/json" style="display:none;">
     </div>
     <div class="panel" style="margin-top:6px;margin-bottom:14px;">
       <h2 style="font-size:14px;">✏️ 今のセットの名前を変更</h2>
@@ -2481,6 +2523,10 @@
   let currentTab = "main";
   let focusMode = false;
   let lastAnswer = null; // snapshot of the most recent answer, for one-step undo
+  let drillMode = false; // optional post-stage "drill the words I got wrong" loop — never touches scoring
+  let drillQueue = [];
+  let randomSessionWrongIds = []; // tracks "わからない" answers within the current random-review session
+  let drillSourceIds = []; // whichever list (main-tab or random-tab) is feeding the drill panel right now
   let phase = "guess"; // 'guess' | 'revealed'  (card flip state, unrelated to schedule phase)
   let pendingKnown = null;
   let randomQueue = [];   // array of card ids for the current random-review session
@@ -2503,6 +2549,11 @@
   const deleteForeverBtn = el("btn-delete-forever");
   const correctionRow = el("btn-correct-choice");
   const undoAnswerBtn = el("btn-undo-answer");
+  const btnDrillWrong = el("btn-drill-wrong");
+  const drillPanel = el("drill-panel");
+  const inDrillCount = el("in-drill-count");
+  const drillCountLabel = el("drill-count-label");
+  const btnExitDrill = el("btn-exit-drill");
   const emptyState = el("empty-state");
   const card = el("card");
   const deckView = el("deck-view");
@@ -2682,6 +2733,48 @@
     setTimeout(() => { window.location.reload(); }, 800);
   }
 
+  async function importMergeDecks(file){
+    if(!file){ return; }
+    let bundle;
+    try{
+      const text = await file.text();
+      bundle = JSON.parse(text);
+    }catch(e){
+      showToast("ファイルを読み取れませんでした。正しいファイルか確認してください");
+      return;
+    }
+    if(!bundle || !bundle.registry || !bundle.decks || !Array.isArray(bundle.registry.decks)){
+      showToast("ファイルの形式が正しくありません");
+      return;
+    }
+    const incomingDecks = bundle.registry.decks;
+    const existingNames = new Set(deckRegistry.decks.map(d => d.name));
+    const ok = await customConfirm(
+      `「${incomingDecks.map(d => d.name).join("」「")}」を、今のデータはそのまま残して追加します。よろしいですか？`
+    );
+    if(!ok) return;
+    try{
+      for(const d of incomingDecks){
+        const deckData = bundle.decks[d.id];
+        if(!deckData) continue;
+        const newId = genId();
+        let name = d.name;
+        let suffix = 2;
+        while(existingNames.has(name)){ name = `${d.name}(${suffix})`; suffix++; }
+        existingNames.add(name);
+        deckRegistry.decks.push({ id: newId, name });
+        await window.storage.set(deckStorageKey(newId), JSON.stringify(deckData), false);
+      }
+      await saveRegistry();
+    }catch(e){
+      showToast("読み込み中にエラーが発生しました");
+      console.error("merge import failed", e);
+      return;
+    }
+    renderDeckBar();
+    showToast(`${incomingDecks.length}個のセットを追加しました`);
+  }
+
   async function loadActiveDeckData(){
     const key = deckStorageKey(deckRegistry.activeDeckId);
     try{
@@ -2809,7 +2902,7 @@
       if(onError) onError("この環境ではAI機能(fetch)が使えません。");
       return [];
     }
-    const BATCH_SIZE = 40;
+    const BATCH_SIZE = 12;
     const neededBatches = Math.ceil(totalCount / BATCH_SIZE);
     const MAX_ATTEMPTS = neededBatches * 2 + 3; // generous retry budget since transient failures no longer abort the whole run
     const results = [];
@@ -2851,7 +2944,7 @@
             body: JSON.stringify({
               contents: [{ parts: [{ text: prompt }] }],
               generationConfig: {
-                maxOutputTokens: 8000,
+                maxOutputTokens: 16000,
                 thinkingConfig: { thinkingBudget: 0 }
               }
             })
@@ -3358,10 +3451,15 @@
   }
 
   function renderCard(){
-    randomControls.classList.toggle("hidden", currentTab !== "random" || focusMode);
+    randomControls.classList.toggle("hidden", currentTab !== "random" || focusMode || drillMode);
+    if(drillMode){
+      renderDrillCard();
+      return;
+    }
     if(currentTab === "random"){
       mainFilterToggle.classList.add("hidden");
       undoAnswerBtn.classList.add("hidden");
+      btnExitDrill.classList.add("hidden");
       updateFocusButtons();
       renderRandomCard();
       return;
@@ -3369,6 +3467,7 @@
     mainFilterToggle.classList.toggle("hidden", !mainFilterAllowed() || focusMode);
     updateFocusButtons();
     undoAnswerBtn.classList.toggle("hidden", !lastAnswer);
+    btnExitDrill.classList.add("hidden");
 
     const deck = currentDeck();
     phase = "guess";
@@ -3380,6 +3479,7 @@
     card.classList.remove("jaen-mode");
     deleteForeverBtn.classList.add("hidden");
     advanceBtn.classList.add("hidden");
+    drillPanel.classList.add("hidden");
     stageBadge.classList.add("hidden");
     swampBadge.classList.add("hidden");
 
@@ -3406,6 +3506,14 @@
         emptyState.innerHTML = `<span class='big'>🏁</span>${info.label} が終わりました！<br>今回は${doneCount}語やりました。お疲れさまでした。`;
         advanceBtn.classList.remove("hidden");
         advanceBtn.textContent = "次のステージに進む →";
+        const wrongCount = (data.schedule.sessionWrongIds || []).length;
+        drillPanel.classList.toggle("hidden", wrongCount === 0);
+        if(wrongCount > 0){
+          drillSourceIds = data.schedule.sessionWrongIds;
+          drillCountLabel.textContent = String(wrongCount);
+          inDrillCount.max = String(wrongCount);
+          inDrillCount.value = String(wrongCount);
+        }
       }
       return;
     }
@@ -3439,6 +3547,7 @@
     correctionRow.classList.add("hidden");
     deleteForeverBtn.classList.add("hidden");
     advanceBtn.classList.add("hidden");
+    drillPanel.classList.add("hidden");
     stageBadge.classList.add("hidden");
     swampBadge.classList.add("hidden");
     card.classList.toggle("jaen-mode", randomDirection === "ja-en");
@@ -3454,6 +3563,14 @@
       } else {
         const modeLabel = randomMode === "weak" ? "苦手だけ" : "全部";
         emptyState.innerHTML = `<span class='big'>🎉</span>（${modeLabel}から）${randomQueue.length}語、終わりました！<br>もう一度「🎯 集中スタート」を押せば再挑戦できます。`;
+        const wrongCount = randomSessionWrongIds.length;
+        drillPanel.classList.toggle("hidden", wrongCount === 0);
+        if(wrongCount > 0){
+          drillSourceIds = randomSessionWrongIds;
+          drillCountLabel.textContent = String(wrongCount);
+          inDrillCount.max = String(wrongCount);
+          inDrillCount.value = String(wrongCount);
+        }
       }
       return;
     }
@@ -3729,15 +3846,36 @@
     film.classList.add("revealed");
     choiceButtons.classList.add("hidden");
     nextButtons.classList.remove("hidden");
-    correctionRow.classList.remove("hidden");
-    deleteForeverBtn.classList.toggle("hidden", !known);
+    if(!drillMode){
+      correctionRow.classList.remove("hidden");
+      deleteForeverBtn.classList.toggle("hidden", !known);
+    }
     if(currentTab === "random" && randomDirection === "ja-en"){
       speakWord(meaningText.textContent, true);
     }
   }
 
   async function nextCard(){
+    if(drillMode){
+      if(drillQueue.length === 0){ endDrillReview(false); return; }
+      if(pendingKnown){
+        drillQueue.shift(); // got it — done with this word for this drill round
+      } else {
+        drillQueue.push(drillQueue.shift()); // still don't know it — send to the back, ask again shortly
+      }
+      if(drillQueue.length === 0){
+        endDrillReview(true);
+      } else {
+        renderDrillCard();
+      }
+      return;
+    }
     if(currentTab === "random"){
+      const rdeck = randomDeck();
+      if(rdeck.length > 0 && pendingKnown === false){
+        const rItem = rdeck[0];
+        if(!randomSessionWrongIds.includes(rItem.id)) randomSessionWrongIds.push(rItem.id);
+      }
       randomIndex += 1;
       render();
       return;
@@ -3900,6 +4038,7 @@
   });
 
   function startRandomSession(){
+    randomSessionWrongIds = [];
     const raw = inRandomCount.value.trim();
     let n = data.settings.randomDefaultCount || 20;
     if(raw !== ""){
@@ -3943,6 +4082,66 @@
         autoplayStep(autoplayToken);
       }
     }
+  }
+
+  function startDrillReview(){
+    const cardsById = new Map(data.cards.map(c => [c.id, c]));
+    const pool = Array.from(new Set(drillSourceIds || [])).filter(id => cardsById.has(id));
+    if(pool.length === 0){
+      showToast("わからなかった単語はありません");
+      return;
+    }
+    let n = pool.length;
+    const raw = inDrillCount.value.trim();
+    if(raw !== ""){
+      const parsed = parseInt(raw, 10);
+      if(Number.isFinite(parsed) && parsed > 0) n = Math.min(parsed, pool.length);
+    }
+    drillQueue = pool.slice(0, n);
+    drillMode = true;
+    renderDrillCard();
+  }
+
+  function renderDrillCard(){
+    randomControls.classList.add("hidden");
+    mainFilterToggle.classList.add("hidden");
+    undoAnswerBtn.classList.add("hidden");
+    updateFocusButtons();
+    phase = "guess";
+    pendingKnown = null;
+    film.classList.remove("revealed");
+    choiceButtons.classList.remove("hidden");
+    nextButtons.classList.add("hidden");
+    correctionRow.classList.add("hidden");
+    card.classList.remove("jaen-mode");
+    deleteForeverBtn.classList.add("hidden");
+    advanceBtn.classList.add("hidden");
+    drillPanel.classList.add("hidden");
+    stageBadge.classList.add("hidden");
+    swampBadge.classList.add("hidden");
+    emptyState.classList.add("hidden");
+
+    if(drillQueue.length === 0){ endDrillReview(true); return; }
+    const cardsById = new Map(data.cards.map(c => [c.id, c]));
+    const item = cardsById.get(drillQueue[0]);
+    if(!item){
+      drillQueue.shift();
+      renderDrillCard();
+      return;
+    }
+    card.classList.remove("hidden");
+    wordText.textContent = item.word;
+    meaningText.textContent = item.meaning;
+    progress.textContent = `🔁 わからなかった単語の復習：残り${drillQueue.length}語（記録には影響しません）`;
+    btnExitDrill.classList.remove("hidden");
+    speakWord(item.word, true);
+  }
+
+  function endDrillReview(completed){
+    drillMode = false;
+    drillQueue = [];
+    if(completed) showToast("🎉 今回わからなかった単語、全部わかるようになりました！");
+    render();
   }
 
   async function advanceStage(){
@@ -4122,6 +4321,8 @@
   el("btn-undo-answer").addEventListener("click", undoLastAnswer);
   el("btn-delete-forever").addEventListener("click", deleteCardForever);
   el("btn-advance").addEventListener("click", advanceStage);
+  el("btn-drill-wrong").addEventListener("click", startDrillReview);
+  el("btn-exit-drill").addEventListener("click", () => endDrillReview(false));
   el("btn-focus-start").addEventListener("click", () => setFocusMode(true));
   el("btn-focus-exit").addEventListener("click", () => setFocusMode(false));
   el("btn-start-random").addEventListener("click", () => {
@@ -4296,6 +4497,11 @@
     const file = e.target.files && e.target.files[0];
     importAllData(file);
     e.target.value = ""; // allow re-selecting the same file later
+  });
+  el("in-merge-decks").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    importMergeDecks(file);
+    e.target.value = "";
   });
   el("btn-save-api-key").addEventListener("click", () => {
     const key = el("in-api-key").value.trim();
