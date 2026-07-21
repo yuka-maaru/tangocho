@@ -312,6 +312,52 @@
     display:flex;
     gap:10px;
   }
+  .spell-hint-row{
+    text-align:center;
+    margin-bottom:10px;
+  }
+  .spell-hint-row button{
+    background:none;
+    border:1.5px solid var(--card-border);
+    border-radius:999px;
+    padding:6px 14px;
+    font-family:inherit;
+    font-size:12px;
+    font-weight:700;
+    color:var(--ink-green);
+    cursor:pointer;
+  }
+  .spell-hint-row button:hover{background:#EAF3EC;}
+  #spell-hint-text{
+    display:block;
+    margin-top:6px;
+    font-size:13px;
+    color:var(--text-dark);
+  }
+  .spell-input-row{
+    display:flex;
+    gap:8px;
+  }
+  .spell-input-row input{
+    flex:1;
+    border:1.5px solid var(--card-border);
+    border-radius:10px;
+    padding:12px;
+    font-family:inherit;
+    font-size:16px;
+    text-align:center;
+  }
+  .spell-input-row input:focus{
+    outline:none;
+    border-color:var(--ink-green);
+  }
+  .spell-result{
+    text-align:center;
+    font-size:14px;
+    font-weight:700;
+    min-height:20px;
+    margin-top:8px;
+  }
   .kbd-hint{
     text-align:center;
     font-size:10.5px;
@@ -375,38 +421,6 @@
   }
   .correction-row:hover{background:#EAF3EC;}
   .correction-row:active{transform:scale(.98);}
-  .drill-panel{
-    background:var(--paper);
-    border:1.5px dashed var(--card-border);
-    border-radius:12px;
-    padding:12px;
-    margin-bottom:14px;
-  }
-  .drill-panel-label{
-    display:block;
-    font-size:12.5px;
-    font-weight:700;
-    color:var(--text-dark);
-    margin-bottom:8px;
-  }
-  .drill-panel-row{
-    display:flex;
-    gap:8px;
-  }
-  .drill-panel-row input{
-    width:70px;
-    flex:none;
-    border:1.5px solid var(--card-border);
-    border-radius:8px;
-    padding:8px;
-    font-family:inherit;
-    font-size:14px;
-    text-align:center;
-  }
-  .drill-panel-row button{
-    flex:1;
-  }
-
   .undo-link{
     display:block;
     width:100%;
@@ -595,6 +609,31 @@
     margin:auto;
     box-shadow:0 12px 30px rgba(0,0,0,.25);
   }
+  .guide-box{
+    max-width:520px;
+    max-height:90vh;
+    overflow-y:auto;
+  }
+  .guide-content h2{
+    font-size:18px;
+    color:var(--navy);
+    margin:0 0 14px;
+  }
+  .guide-content h3{
+    font-size:14px;
+    color:var(--ink-green-deep);
+    margin:20px 0 6px;
+  }
+  .guide-content p, .guide-content li{
+    font-size:13px;
+    line-height:1.8;
+    color:var(--text-dark);
+  }
+  .guide-content ul{
+    margin:6px 0;
+    padding-left:20px;
+  }
+  .guide-content a{color:var(--ink-green);}
   .confirm-message{
     font-size:14.5px;
     line-height:1.7;
@@ -870,6 +909,8 @@
         <div class="mode-toggle">
           <button type="button" class="dir-btn active" data-dir="en-ja">🇬🇧→🇯🇵 通常（英語→日本語）</button>
           <button type="button" class="dir-btn" data-dir="ja-en">🔥 スピーキングテスト（日本語→英語）</button>
+          <button type="button" class="dir-btn" data-dir="spell">⌨️ スペル入力テスト</button>
+          <button type="button" class="dir-btn" data-dir="listen-spell">🎧 発音を聞いて入力</button>
         </div>
       </div>
       <div class="field" style="margin-bottom:8px;">
@@ -903,22 +944,23 @@
       <button class="btn btn-navy" id="btn-dont-know">わからない</button>
       <button class="btn btn-green" id="btn-know">わかる</button>
     </div>
+    <div class="spell-hint-row hidden" id="spell-hint-row">
+      <button type="button" id="btn-spell-hint">💡 ヒント(日本語の意味)を見る</button>
+      <span id="spell-hint-text"></span>
+    </div>
+    <div class="spell-input-row hidden" id="spell-input-row">
+      <input type="text" id="in-spell-answer" placeholder="英語のスペルを入力…" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="btn btn-navy" id="btn-spell-submit" style="flex:none;">答え合わせ</button>
+    </div>
+    <div class="spell-result" id="spell-result"></div>
     <div class="kbd-hint" id="kbd-hint">←わからない　わかる→　／　space・Enterで次へ　／　スマホは左右スワイプ</div>
     <div class="next-buttons hidden" id="next-buttons">
       <button class="btn btn-outline" id="btn-next">つぎの単語へ →</button>
     </div>
     <button type="button" class="correction-row hidden" id="btn-correct-choice">🔄 わかる ⇔ わからない　判定変更（次へ進む）</button>
     <button class="undo-link hidden" id="btn-undo-answer">↩️ 直前の回答を取り消す</button>
-    <button class="undo-link hidden" id="btn-exit-drill">✕ 復習を終了する</button>
     <button class="delete-forever hidden" id="btn-delete-forever">🗑 完全に削除する(もう二度と出さない)</button>
     <div class="empty-state hidden" id="empty-state"></div>
-    <div class="drill-panel hidden" id="drill-panel">
-      <label for="in-drill-count" class="drill-panel-label">🔁 わからなかった単語だけ復習する（記録に影響しません）：<span id="drill-count-label"></span>語</label>
-      <div class="drill-panel-row">
-        <input type="number" id="in-drill-count" min="1">
-        <button class="btn btn-outline" id="btn-drill-wrong" style="flex:none;padding:10px 16px;">復習する</button>
-      </div>
-    </div>
     <button class="advance-btn hidden" id="btn-advance">次のステージに進む →</button>
   </main>
 
@@ -1033,6 +1075,7 @@
     <button class="reset-link" id="btn-clear-all">🗑 単語をすべて削除してまっさらから始める（自分で追加していくスタイル向け）</button>
     <button class="reset-link" id="btn-reset">このセットの進捗だけリセットする（単語は消えません）</button>
     <button class="reset-link" id="btn-delete-deck">🗑 今のセットを完全に削除する（2つ以上ある場合のみ）</button>
+    <button class="btn btn-navy" id="btn-open-guide" style="width:100%;margin-top:16px;">📖 使い方・解説を見る</button>
   </section>
 
   <section id="growth-view" class="hidden">
@@ -1132,6 +1175,53 @@
         <div class="hint" id="ai-progress" style="text-align:center;margin-top:8px;min-height:16px;"></div>
       </div>
       <button class="reset-link" id="btn-deck-create-cancel" style="margin-top:6px;">キャンセル</button>
+    </div>
+  </div>
+
+  <div class="confirm-overlay hidden" id="guide-overlay" style="align-items:flex-start;">
+    <div class="confirm-box guide-box">
+      <button class="reset-link" id="btn-close-guide" style="margin:0 0 12px;text-align:right;">✕ 閉じる</button>
+      <div class="guide-content">
+        <h2>📇 単語帳アプリ 使い方・解説</h2>
+
+        <h3>1. なぜこの学習法が効くのか</h3>
+        <p>脳は「かけた時間」ではなく「短期間に何回出会ったか」で重要度を判断します。だからこのアプリは1語1〜2秒のテンポで大量に回転させます。英単語(音＋文字)が先、日本語の意味はあと。答えを見る前に「わかる／わからない」を自分で判断すること(アクティブリコール)が記憶の定着を大きく助けます。</p>
+
+        <h3>2. 学習サイクル</h3>
+        <p><b>学習フェーズ(7日サイクル)</b>：1〜5日目は新規単語＋前日わからなかった語、6日目は直近5日分の総復習、7日目はそこでわからなかった分だけやり直し。新規単語を使い切ると自動的に<b>復習フェーズ</b>(前回わからない語＋新しい復習バッチのくり返し)に切り替わります。</p>
+        <p><b>卒業ルール</b>：「わかる」を設定回数(デフォルト4回)連続で選ぶと完全卒業。<b>🔥沼単語</b>：既定回数(デフォルト5回)以上「わからない」を選んだ語に自動でマークが付きます。</p>
+
+        <h3>3. 複数のセット</h3>
+        <p>ヘッダー下のセット切り替えバーの「＋新しいセット」から、「空から作る」または「🤖AIでランダムに作る」を選べます。各セットは単語・進捗・履歴が完全に独立しています。設定タブから名前の変更・削除もできます。</p>
+
+        <h3>4. 📋単語一覧タブ</h3>
+        <p>検索・ステータス絞り込み(未着手／学習中／卒業済み／沼単語)・個別削除ができます。「🔀出題順をシャッフル」は、まだ学習していない単語の並び順を変える機能です。<b>今のステージには反映されず、次のステージから反映されます。</b>2周目(復習フェーズ)に入ってから使うのがおすすめです。</p>
+
+        <h3>5. 🎯集中モード／新規のみ・復習のみ</h3>
+        <p>単語帳タブの「▶単語学習をスタート」、ランダム復習の「🎯集中スタート」を押すと、必要な表示だけに絞った集中モードになります。単語帳タブ上部の「両方／🆕新規のみ／🔁復習のみ」は表示を絞るだけの機能で、データが失われることはありません(後回しにした分は自動的に繰り越されます)。「次のステージに進む」を押すまでは同じステージの続き扱いになります。</p>
+
+        <h3>6. ステージ完了後にできること</h3>
+        <ul>
+          <li><b>🔁わからなかった単語だけ復習する</b>：その回で「わからない」を選んだ語を、わかるまで繰り返し出題(記録には影響しません、語数も編集可)。ランダム復習でも同様に使えます。</li>
+          <li><b>🔄判定変更</b>：「わかる／わからない」を押し間違えた時、答えが見えている間ならその場で訂正して次に進めます。</li>
+          <li><b>↩️直前の回答を取り消す</b>：「次の単語へ」を押した直後なら、1回分だけ取り消せます(卒業状況・記録も元に戻ります)。</li>
+        </ul>
+
+        <h3>7. 🎲ランダム復習タブ</h3>
+        <p>出題範囲：全部／苦手だけ／🔥沼単語だけ／🆕今日の新規単語だけ。出題の向き：🇬🇧→🇯🇵通常／🔥スピーキングテスト(日本語→英語)／⌨️スペル入力テスト(英単語のスペルを実際に打ち込んで答え合わせ)。🔊自動再生モードは「全部」＋「通常」の組み合わせのみ対応で、英語音声→日本語音声の順に読み上げながら自動で進みます。ここでの正解・不正解は一切記録に影響しません。</p>
+
+        <h3>8. 🤖AIでセットを作る・単語を追加する</h3>
+        <p>Google Geminiの無料枠を使います。「＋追加・設定」タブの一番下でAPIキーを設定してください(<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>、クレジットカード不要)。「＋新しいセット」からAIで新規作成、または「＋追加・設定」タブの「AIで単語を追加」で今のセットに追加できます(既存の単語とは重複しません)。</p>
+
+        <h3>9. バックアップ・別端末への引き継ぎ</h3>
+        <ul>
+          <li><b>📤バックアップを書き出す／📥読み込む</b>：全セットをまとめて別端末に移せます(読み込むと今のデータは置き換わります)。</li>
+          <li><b>➕セットだけ追加で読み込む</b>：今のデータを残したまま、特定のセットだけを追加できます。友達からもらったセットファイルなどはこちらを使ってください。</li>
+        </ul>
+
+        <h3>10. データについて</h3>
+        <p>このアプリのデータは、この端末のブラウザ内(localStorage)にのみ保存されます。他の人が同じリンクを開いても、データは完全に別々です。アプリの中身(index.html)を更新しても、保存されているデータが消えることはありません。</p>
+      </div>
     </div>
   </div>
 </div>
@@ -2523,10 +2613,6 @@
   let currentTab = "main";
   let focusMode = false;
   let lastAnswer = null; // snapshot of the most recent answer, for one-step undo
-  let drillMode = false; // optional post-stage "drill the words I got wrong" loop — never touches scoring
-  let drillQueue = [];
-  let randomSessionWrongIds = []; // tracks "わからない" answers within the current random-review session
-  let drillSourceIds = []; // whichever list (main-tab or random-tab) is feeding the drill panel right now
   let phase = "guess"; // 'guess' | 'revealed'  (card flip state, unrelated to schedule phase)
   let pendingKnown = null;
   let randomQueue = [];   // array of card ids for the current random-review session
@@ -2548,12 +2634,12 @@
   const advanceBtn = el("btn-advance");
   const deleteForeverBtn = el("btn-delete-forever");
   const correctionRow = el("btn-correct-choice");
+  const spellInputRow = el("spell-input-row");
+  const spellAnswerInput = el("in-spell-answer");
+  const spellResult = el("spell-result");
+  const spellHintRow = el("spell-hint-row");
+  const spellHintText = el("spell-hint-text");
   const undoAnswerBtn = el("btn-undo-answer");
-  const btnDrillWrong = el("btn-drill-wrong");
-  const drillPanel = el("drill-panel");
-  const inDrillCount = el("in-drill-count");
-  const drillCountLabel = el("drill-count-label");
-  const btnExitDrill = el("btn-exit-drill");
   const emptyState = el("empty-state");
   const card = el("card");
   const deckView = el("deck-view");
@@ -3451,15 +3537,10 @@
   }
 
   function renderCard(){
-    randomControls.classList.toggle("hidden", currentTab !== "random" || focusMode || drillMode);
-    if(drillMode){
-      renderDrillCard();
-      return;
-    }
+    randomControls.classList.toggle("hidden", currentTab !== "random" || focusMode);
     if(currentTab === "random"){
       mainFilterToggle.classList.add("hidden");
       undoAnswerBtn.classList.add("hidden");
-      btnExitDrill.classList.add("hidden");
       updateFocusButtons();
       renderRandomCard();
       return;
@@ -3467,7 +3548,6 @@
     mainFilterToggle.classList.toggle("hidden", !mainFilterAllowed() || focusMode);
     updateFocusButtons();
     undoAnswerBtn.classList.toggle("hidden", !lastAnswer);
-    btnExitDrill.classList.add("hidden");
 
     const deck = currentDeck();
     phase = "guess";
@@ -3479,7 +3559,6 @@
     card.classList.remove("jaen-mode");
     deleteForeverBtn.classList.add("hidden");
     advanceBtn.classList.add("hidden");
-    drillPanel.classList.add("hidden");
     stageBadge.classList.add("hidden");
     swampBadge.classList.add("hidden");
 
@@ -3506,14 +3585,6 @@
         emptyState.innerHTML = `<span class='big'>🏁</span>${info.label} が終わりました！<br>今回は${doneCount}語やりました。お疲れさまでした。`;
         advanceBtn.classList.remove("hidden");
         advanceBtn.textContent = "次のステージに進む →";
-        const wrongCount = (data.schedule.sessionWrongIds || []).length;
-        drillPanel.classList.toggle("hidden", wrongCount === 0);
-        if(wrongCount > 0){
-          drillSourceIds = data.schedule.sessionWrongIds;
-          drillCountLabel.textContent = String(wrongCount);
-          inDrillCount.max = String(wrongCount);
-          inDrillCount.value = String(wrongCount);
-        }
       }
       return;
     }
@@ -3542,20 +3613,25 @@
     phase = "guess";
     pendingKnown = null;
     film.classList.remove("revealed");
-    choiceButtons.classList.remove("hidden");
+    choiceButtons.classList.toggle("hidden", randomDirection === "spell" || randomDirection === "listen-spell");
+    spellInputRow.classList.add("hidden");
+    spellHintRow.classList.add("hidden");
+    spellHintText.textContent = "";
+    spellResult.innerHTML = "";
     nextButtons.classList.add("hidden");
     correctionRow.classList.add("hidden");
     deleteForeverBtn.classList.add("hidden");
     advanceBtn.classList.add("hidden");
-    drillPanel.classList.add("hidden");
     stageBadge.classList.add("hidden");
     swampBadge.classList.add("hidden");
-    card.classList.toggle("jaen-mode", randomDirection === "ja-en");
+    card.classList.toggle("jaen-mode", randomDirection === "ja-en" || randomDirection === "spell" || randomDirection === "listen-spell");
 
     const deck = randomDeck();
     if(deck.length === 0){
       card.classList.add("hidden");
       choiceButtons.classList.add("hidden");
+      spellInputRow.classList.add("hidden");
+      spellHintRow.classList.add("hidden");
       progress.textContent = "";
       emptyState.classList.remove("hidden");
       if(randomQueue.length === 0){
@@ -3563,14 +3639,6 @@
       } else {
         const modeLabel = randomMode === "weak" ? "苦手だけ" : "全部";
         emptyState.innerHTML = `<span class='big'>🎉</span>（${modeLabel}から）${randomQueue.length}語、終わりました！<br>もう一度「🎯 集中スタート」を押せば再挑戦できます。`;
-        const wrongCount = randomSessionWrongIds.length;
-        drillPanel.classList.toggle("hidden", wrongCount === 0);
-        if(wrongCount > 0){
-          drillSourceIds = randomSessionWrongIds;
-          drillCountLabel.textContent = String(wrongCount);
-          inDrillCount.max = String(wrongCount);
-          inDrillCount.value = String(wrongCount);
-        }
       }
       return;
     }
@@ -3578,21 +3646,58 @@
     card.classList.remove("hidden");
     const item = deck[0];
     swampBadge.classList.toggle("hidden", !isSwamp(item) || focusMode);
-    if(randomDirection === "ja-en"){
+    if(randomDirection === "listen-spell"){
+      wordText.textContent = "🎧";
+      meaningText.textContent = "";
+    } else if(randomDirection === "ja-en" || randomDirection === "spell"){
       wordText.textContent = item.meaning;
       meaningText.textContent = item.word;
     } else {
       wordText.textContent = item.word;
       meaningText.textContent = item.meaning;
     }
+    if(randomDirection === "spell" || randomDirection === "listen-spell"){
+      spellInputRow.classList.remove("hidden");
+      spellAnswerInput.value = "";
+      if(!focusMode) spellAnswerInput.focus();
+    }
+    if(randomDirection === "listen-spell"){
+      spellHintRow.classList.remove("hidden");
+    }
     const modeLabel = randomMode === "weak" ? "苦手だけ" : (randomMode === "swamp" ? "🔥沼単語だけ" : (randomMode === "todaynew" ? "🆕今日の新規" : "全部"));
-    const dirLabel = randomDirection === "ja-en" ? "🔥 日本語→英語（スピーキングテスト）" : "英語→日本語";
+    const dirLabel = randomDirection === "ja-en" ? "🔥 日本語→英語（スピーキングテスト）" : (randomDirection === "spell" ? "⌨️ スペル入力テスト" : (randomDirection === "listen-spell" ? "🎧 発音を聞いて入力" : "英語→日本語"));
     progress.textContent = focusMode
       ? `残り ${deck.length} 語（このステージ）`
       : `残り ${deck.length} / ${randomQueue.length} 語（${modeLabel}・${dirLabel}・記録には影響しません）`;
-    if(randomDirection === "en-ja"){
+    if(randomDirection === "en-ja" || randomDirection === "listen-spell"){
       speakWord(item.word, true);
     }
+  }
+
+  function showSpellHint(){
+    const deck = randomDeck();
+    if(deck.length === 0) return;
+    spellHintText.textContent = deck[0].meaning;
+  }
+
+  function submitSpellAnswer(){
+    if(phase !== "guess") return;
+    const deck = randomDeck();
+    if(deck.length === 0) return;
+    const item = deck[0];
+    const userAnswer = spellAnswerInput.value.trim().toLowerCase();
+    const correctAnswer = item.word.trim().toLowerCase();
+    const correct = userAnswer.length > 0 && userAnswer === correctAnswer;
+    pendingKnown = correct;
+    phase = "revealed";
+    film.classList.add("revealed");
+    spellInputRow.classList.add("hidden");
+    spellHintRow.classList.add("hidden");
+    nextButtons.classList.remove("hidden");
+    const resultLine = correct ? "✅ 正解！" : `❌ 不正解 — 正しいスペル：${item.word}`;
+    spellResult.innerHTML = `${resultLine}<br><span style="font-size:12px;color:var(--text-mute);">${item.meaning}</span>`;
+    spellResult.style.color = correct ? "var(--ink-green)" : "var(--film-red-deep)";
+    speakWord(item.word, true);
   }
 
   function logHistoryToday(){
@@ -3846,36 +3951,15 @@
     film.classList.add("revealed");
     choiceButtons.classList.add("hidden");
     nextButtons.classList.remove("hidden");
-    if(!drillMode){
-      correctionRow.classList.remove("hidden");
-      deleteForeverBtn.classList.toggle("hidden", !known);
-    }
+    correctionRow.classList.remove("hidden");
+    deleteForeverBtn.classList.toggle("hidden", !known);
     if(currentTab === "random" && randomDirection === "ja-en"){
       speakWord(meaningText.textContent, true);
     }
   }
 
   async function nextCard(){
-    if(drillMode){
-      if(drillQueue.length === 0){ endDrillReview(false); return; }
-      if(pendingKnown){
-        drillQueue.shift(); // got it — done with this word for this drill round
-      } else {
-        drillQueue.push(drillQueue.shift()); // still don't know it — send to the back, ask again shortly
-      }
-      if(drillQueue.length === 0){
-        endDrillReview(true);
-      } else {
-        renderDrillCard();
-      }
-      return;
-    }
     if(currentTab === "random"){
-      const rdeck = randomDeck();
-      if(rdeck.length > 0 && pendingKnown === false){
-        const rItem = rdeck[0];
-        if(!randomSessionWrongIds.includes(rItem.id)) randomSessionWrongIds.push(rItem.id);
-      }
       randomIndex += 1;
       render();
       return;
@@ -4038,7 +4122,6 @@
   });
 
   function startRandomSession(){
-    randomSessionWrongIds = [];
     const raw = inRandomCount.value.trim();
     let n = data.settings.randomDefaultCount || 20;
     if(raw !== ""){
@@ -4082,66 +4165,6 @@
         autoplayStep(autoplayToken);
       }
     }
-  }
-
-  function startDrillReview(){
-    const cardsById = new Map(data.cards.map(c => [c.id, c]));
-    const pool = Array.from(new Set(drillSourceIds || [])).filter(id => cardsById.has(id));
-    if(pool.length === 0){
-      showToast("わからなかった単語はありません");
-      return;
-    }
-    let n = pool.length;
-    const raw = inDrillCount.value.trim();
-    if(raw !== ""){
-      const parsed = parseInt(raw, 10);
-      if(Number.isFinite(parsed) && parsed > 0) n = Math.min(parsed, pool.length);
-    }
-    drillQueue = pool.slice(0, n);
-    drillMode = true;
-    renderDrillCard();
-  }
-
-  function renderDrillCard(){
-    randomControls.classList.add("hidden");
-    mainFilterToggle.classList.add("hidden");
-    undoAnswerBtn.classList.add("hidden");
-    updateFocusButtons();
-    phase = "guess";
-    pendingKnown = null;
-    film.classList.remove("revealed");
-    choiceButtons.classList.remove("hidden");
-    nextButtons.classList.add("hidden");
-    correctionRow.classList.add("hidden");
-    card.classList.remove("jaen-mode");
-    deleteForeverBtn.classList.add("hidden");
-    advanceBtn.classList.add("hidden");
-    drillPanel.classList.add("hidden");
-    stageBadge.classList.add("hidden");
-    swampBadge.classList.add("hidden");
-    emptyState.classList.add("hidden");
-
-    if(drillQueue.length === 0){ endDrillReview(true); return; }
-    const cardsById = new Map(data.cards.map(c => [c.id, c]));
-    const item = cardsById.get(drillQueue[0]);
-    if(!item){
-      drillQueue.shift();
-      renderDrillCard();
-      return;
-    }
-    card.classList.remove("hidden");
-    wordText.textContent = item.word;
-    meaningText.textContent = item.meaning;
-    progress.textContent = `🔁 わからなかった単語の復習：残り${drillQueue.length}語（記録には影響しません）`;
-    btnExitDrill.classList.remove("hidden");
-    speakWord(item.word, true);
-  }
-
-  function endDrillReview(completed){
-    drillMode = false;
-    drillQueue = [];
-    if(completed) showToast("🎉 今回わからなかった単語、全部わかるようになりました！");
-    render();
   }
 
   async function advanceStage(){
@@ -4313,6 +4336,15 @@
     }
   });
   el("btn-dont-know").addEventListener("click", () => choose(false));
+  el("btn-spell-submit").addEventListener("click", submitSpellAnswer);
+  el("btn-spell-hint").addEventListener("click", showSpellHint);
+  spellAnswerInput.addEventListener("keydown", (e) => {
+    if(e.key === "Enter"){
+      e.preventDefault();
+      if(phase === "guess") submitSpellAnswer();
+      else nextCard();
+    }
+  });
   el("btn-next").addEventListener("click", nextCard);
   el("btn-correct-choice").addEventListener("click", () => {
     pendingKnown = !pendingKnown;
@@ -4321,8 +4353,6 @@
   el("btn-undo-answer").addEventListener("click", undoLastAnswer);
   el("btn-delete-forever").addEventListener("click", deleteCardForever);
   el("btn-advance").addEventListener("click", advanceStage);
-  el("btn-drill-wrong").addEventListener("click", startDrillReview);
-  el("btn-exit-drill").addEventListener("click", () => endDrillReview(false));
   el("btn-focus-start").addEventListener("click", () => setFocusMode(true));
   el("btn-focus-exit").addEventListener("click", () => setFocusMode(false));
   el("btn-start-random").addEventListener("click", () => {
@@ -4489,6 +4519,12 @@
   });
 
   el("btn-delete-deck").addEventListener("click", deleteActiveDeck);
+  el("btn-open-guide").addEventListener("click", () => {
+    el("guide-overlay").classList.remove("hidden");
+  });
+  el("btn-close-guide").addEventListener("click", () => {
+    el("guide-overlay").classList.add("hidden");
+  });
   el("btn-rename-deck").addEventListener("click", () => {
     renameActiveDeck(el("in-rename-deck").value);
   });
