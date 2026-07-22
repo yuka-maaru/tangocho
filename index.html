@@ -353,10 +353,18 @@
   }
   .spell-result{
     text-align:center;
-    font-size:14px;
+    font-size:22px;
     font-weight:700;
     min-height:20px;
-    margin-top:8px;
+    margin-top:12px;
+    line-height:1.5;
+  }
+  .spell-result .spell-result-meaning{
+    display:block;
+    font-size:17px;
+    font-weight:700;
+    color:var(--text-dark);
+    margin-top:4px;
   }
   .kbd-hint{
     text-align:center;
@@ -3695,7 +3703,7 @@
     spellHintRow.classList.add("hidden");
     nextButtons.classList.remove("hidden");
     const resultLine = correct ? "✅ 正解！" : `❌ 不正解 — 正しいスペル：${item.word}`;
-    spellResult.innerHTML = `${resultLine}<br><span style="font-size:12px;color:var(--text-mute);">${item.meaning}</span>`;
+    spellResult.innerHTML = `${resultLine}<span class="spell-result-meaning">${item.meaning}</span>`;
     spellResult.style.color = correct ? "var(--ink-green)" : "var(--film-red-deep)";
     speakWord(item.word, true);
   }
